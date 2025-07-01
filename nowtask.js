@@ -933,40 +933,500 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== サイドバー機能 =====
 
-// 詳細タスク追加
-function addCustomTask() {
+// ===== 詳細タスク追加フォーム管理 =====
+
+// フォームの表示/非表示を切り替え
+function toggleCustomTaskForm() {
+  const form = document.getElementById('custom-task-form');
+  if (!form) return;
+  
+  if (form.style.display === 'none' || !form.style.display) {
+    showCustomTaskForm();
+  } else {
+    hideCustomTaskForm();
+  }
+}
+
+// フォームを表示
+function showCustomTaskForm() {
+  const form = document.getElementById('custom-task-form');
+  if (!form) return;
+  
+  form.style.display = 'block';
+  
+  // 現在時刻をデフォルト値として設定
+  const now = getCurrentTime();
+  const oneHourLater = getOneHourLater(now);
+  
+  document.getElementById('task-title-input').value = '';
+  document.getElementById('task-start-time').value = now;
+  document.getElementById('task-end-time').value = oneHourLater;
+  
+  // 通常優先度を選択
+  const normalRadio = document.querySelector('input[name="task-priority"][value="normal"]');
+  if (normalRadio) normalRadio.checked = true;
+  
+  // タスク名入力フィールドにフォーカス
+  setTimeout(() => {
+    const titleInput = document.getElementById('task-title-input');
+    if (titleInput) titleInput.focus();
+  }, 100);
+}
+
+// フォームを隠す
+function hideCustomTaskForm() {
+  const form = document.getElementById('custom-task-form');
+  if (!form) return;
+  
+  // フェードアウトアニメーション
+  form.style.animation = 'slideUp 0.3s ease-out forwards';
+  
+  setTimeout(() => {
+    form.style.display = 'none';
+    form.style.animation = '';
+  }, 300);
+}
+
+// フェードアウトアニメーション用CSS（既に追加されていない場合）
+const slideUpKeyframes = `
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+`;
+
+// スタイルシートにアニメーションを追加
+if (!document.querySelector('#slideUpAnimation')) {
+  const style = document.createElement('style');
+  style.id = 'slideUpAnimation';
+  style.textContent = slideUpKeyframes;
+  document.head.appendChild(style);
+}
+
+// カスタムタスクを保存
+function saveCustomTask() {
   try {
-    const title = prompt('タスク名を入力してください:');
-    if (!title || !title.trim()) return;
+    // フォームの値を取得
+    const title = document.getElementById('task-title-input').value.trim();
+    const startTime = document.getElementById('task-start-time').value;
+    const endTime = document.getElementById('task-end-time').value;
+    const priorityElement = document.querySelector('input[name="task-priority"]:checked');
     
-    const startTime = prompt('開始時刻を入力してください (HH:MM):', getCurrentTime());
-    if (!startTime) return;
-    
-    const endTime = prompt('終了時刻を入力してください (HH:MM):', getOneHourLater(startTime));
-    if (!endTime) return;
-    
-    const priorityOptions = ['normal', 'high', 'urgent'];
-    const priorityLabels = ['通常', '高優先度', '緊急'];
-    const priorityChoice = prompt(`優先度を選択してください:\n1: ${priorityLabels[0]}\n2: ${priorityLabels[1]}\n3: ${priorityLabels[2]}`, '1');
-    
-    let priority = 'normal';
-    if (priorityChoice === '2') priority = 'high';
-    else if (priorityChoice === '3') priority = 'urgent';
-    
-    // 時刻形式の検証
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-      alert('時刻の形式が正しくありません (HH:MM)');
+    // バリデーション
+    if (!title) {
+      showNotification('タスク名を入力してください', 'error');
+      document.getElementById('task-title-input').focus();
       return;
     }
     
-    addTask(title.trim(), startTime, endTime, priority);
+    if (!startTime) {
+      showNotification('開始時刻を入力してください', 'error');
+      document.getElementById('task-start-time').focus();
+      return;
+    }
+    
+    if (!endTime) {
+      showNotification('終了時刻を入力してください', 'error');
+      document.getElementById('task-end-time').focus();
+      return;
+    }
+    
+    // 時刻の妥当性チェック
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    if (startMinutes >= endMinutes && endMinutes !== 0) {
+      showNotification('終了時刻は開始時刻より後に設定してください', 'error');
+      document.getElementById('task-end-time').focus();
+      return;
+    }
+    
+    const priority = priorityElement ? priorityElement.value : 'normal';
+    
+    // タスクを追加
+    addTask(title, startTime, endTime, priority);
+    
+    // 成功通知
     showNotification(`タスク「${title}」を追加しました`, 'success');
     
+    // フォームを隠す
+    hideCustomTaskForm();
+    
   } catch (error) {
-    console.error('詳細タスク追加エラー:', error);
-    alert('タスクの追加に失敗しました');
+    console.error('タスク保存エラー:', error);
+    showNotification('タスクの追加に失敗しました', 'error');
   }
+}
+
+// Enterキーでの保存、Escapeキーでのキャンセル
+document.addEventListener('keydown', function(e) {
+  const form = document.getElementById('custom-task-form');
+  if (!form || form.style.display === 'none') return;
+  
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    saveCustomTask();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    hideCustomTaskForm();
+  }
+});
+
+// 開始時刻が変更されたら、終了時刻を自動調整
+document.addEventListener('DOMContentLoaded', function() {
+  const startTimeInput = document.getElementById('task-start-time');
+  const endTimeInput = document.getElementById('task-end-time');
+  
+  if (startTimeInput && endTimeInput) {
+    startTimeInput.addEventListener('change', function() {
+      const startTime = this.value;
+      if (startTime) {
+        const suggestedEndTime = getOneHourLater(startTime);
+        endTimeInput.value = suggestedEndTime;
+      }
+    });
+  }
+});
+
+// ===== 時刻選択機能 =====
+
+// 選択された時刻を保存する変数
+let selectedTimeMinutes = null;
+
+// タイムライン選択機能の初期化
+function initTimelineSelection() {
+  console.log('タイムライン選択機能を初期化中...');
+  
+  const timeline = document.getElementById('timeline-grid');
+  if (!timeline) {
+    console.error('timeline-grid要素が見つかりません');
+    return;
+  }
+  
+  // 既存のイベントリスナーを削除（重複防止）
+  timeline.removeEventListener('click', handleTimelineClick);
+  
+  // 新しいイベントリスナーを追加
+  timeline.addEventListener('click', handleTimelineClick);
+  
+  console.log('タイムライン選択機能の初期化完了');
+  
+  // テスト用の暫定的な視覚的フィードバック
+  timeline.style.cursor = 'crosshair';
+  timeline.title = 'クリックして時刻を選択';
+}
+
+// タイムラインクリック処理
+function handleTimelineClick(event) {
+  console.log('タイムラインクリックが検出されました', event.target);
+  
+  // タスクカードや他の要素をクリックした場合は無視
+  if (event.target.closest('.task-card') || 
+      event.target.closest('.time-selector') || 
+      event.target.closest('.now-line') ||
+      event.target.closest('.task-edit-btn') ||
+      event.target.closest('.task-delete-btn') ||
+      event.target.closest('.task-checkbox')) {
+    console.log('タスクカードまたは他の要素をクリックしたため無視');
+    return;
+  }
+  
+  const timeline = document.querySelector('.timeline-grid');
+  if (!timeline) {
+    console.error('timeline-gridが見つかりません');
+    return;
+  }
+  
+  const rect = timeline.getBoundingClientRect();
+  console.log('Timeline rect:', rect);
+  
+  // timeline-grid内でのクリック位置を計算
+  const y = event.clientY - rect.top;
+  console.log('計算されたY座標:', y, 'clientY:', event.clientY, 'rect.top:', rect.top);
+  
+  // Y座標を分単位に変換（1px = 1分）
+  const minutes = Math.round(y);
+  console.log('計算された分数:', minutes);
+  
+  // 0-1439分の範囲内に制限
+  if (minutes < 0 || minutes >= 1440) {
+    console.log('分数が範囲外:', minutes);
+    return;
+  }
+  
+  // 時刻を設定
+  setSelectedTime(minutes);
+  
+  // タイムライン選択のフィードバック効果
+  showTimelineClickFeedback(event.clientX, event.clientY);
+}
+
+// タイムライン選択時の視覚的フィードバック
+function showTimelineClickFeedback(x, y) {
+  const feedback = document.createElement('div');
+  feedback.style.cssText = `
+    position: fixed;
+    left: ${x}px;
+    top: ${y}px;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-500);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 9999;
+    animation: clickRipple 0.4s ease-out forwards;
+  `;
+  
+  // CSS アニメーションをスタイルシートに追加（1回のみ）
+  if (!document.querySelector('#clickRippleAnimation')) {
+    const style = document.createElement('style');
+    style.id = 'clickRippleAnimation';
+    style.textContent = `
+      @keyframes clickRipple {
+        0% {
+          transform: translate(-50%, -50%) scale(0);
+          opacity: 0.8;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0.6;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(2);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(feedback);
+  
+  // 0.4秒後に要素を削除
+  setTimeout(() => {
+    if (feedback.parentNode) {
+      feedback.parentNode.removeChild(feedback);
+    }
+  }, 400);
+}
+
+// 選択時刻を設定
+function setSelectedTime(minutes) {
+  console.log('setSelectedTime関数が呼ばれました:', minutes);
+  
+  selectedTimeMinutes = minutes;
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const timeStr = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  
+  console.log('計算された時刻:', timeStr);
+  
+  // 時刻選択インジケーターを表示
+  const selector = document.getElementById('time-selector');
+  const selectorTime = document.getElementById('selector-time');
+  
+  console.log('セレクター要素:', selector, selectorTime);
+  
+  if (selector && selectorTime) {
+    selector.style.display = 'block';
+    selector.style.top = `${minutes}px`;
+    selectorTime.textContent = timeStr;
+    console.log('セレクターを表示しました:', minutes + 'px');
+  } else {
+    console.error('セレクター要素が見つかりません');
+  }
+  
+  // サイドバーの選択状態を表示
+  const status = document.getElementById('time-selection-status');
+  const display = document.getElementById('selected-time-display');
+  
+  console.log('ステータス要素:', status, display);
+  
+  if (status && display) {
+    status.style.display = 'block';
+    display.textContent = timeStr;
+    console.log('ステータス表示を更新しました');
+  } else {
+    console.error('ステータス要素が見つかりません');
+  }
+  
+  console.log(`✓ 時刻選択完了: ${timeStr} (${minutes}分)`);
+  
+  // 成功通知を表示
+  showNotification(`時刻選択: ${timeStr}`, 'info');
+}
+
+// 時刻選択をクリア
+function clearTimeSelection() {
+  selectedTimeMinutes = null;
+  
+  // インジケーターを非表示
+  const selector = document.getElementById('time-selector');
+  if (selector) {
+    selector.style.display = 'none';
+  }
+  
+  // サイドバーの状態を非表示
+  const status = document.getElementById('time-selection-status');
+  if (status) {
+    status.style.display = 'none';
+  }
+  
+  console.log('時刻選択をクリアしました');
+}
+
+// 選択時刻を取得（文字列形式）
+function getSelectedTimeString() {
+  if (selectedTimeMinutes === null) return null;
+  
+  const hours = Math.floor(selectedTimeMinutes / 60);
+  const mins = selectedTimeMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+// ===== テンプレート機能 =====
+
+// 夜勤テンプレートを追加
+function addWorkShiftTemplate() {
+  try {
+    let startTime = '17:00';
+    
+    // 選択時刻がある場合はそれを使用
+    if (selectedTimeMinutes !== null) {
+      startTime = getSelectedTimeString();
+    }
+    
+    const endTime = addHoursToTime(startTime, 16); // 16時間勤務
+    const title = '夜勤';
+    const priority = 'high';
+    
+    // タスクを追加
+    addTask(title, startTime, endTime, priority);
+    
+    // 成功通知
+    const timeInfo = selectedTimeMinutes !== null ? 
+      `選択時刻から（${startTime}-${endTime}）` : 
+      `デフォルト時刻で（${startTime}-${endTime}）`;
+    showNotification(`夜勤タスク ${timeInfo} を追加しました`, 'success');
+    
+    // 選択をクリア
+    clearTimeSelection();
+    
+    console.log('夜勤テンプレートを追加しました');
+    
+  } catch (error) {
+    console.error('夜勤テンプレート追加エラー:', error);
+    showNotification('夜勤テンプレートの追加に失敗しました', 'error');
+  }
+}
+
+// 睡眠テンプレートを追加
+function addSleepTemplate(hours) {
+  try {
+    let startTime;
+    
+    // 選択時刻がある場合はそれを使用
+    if (selectedTimeMinutes !== null) {
+      startTime = getSelectedTimeString();
+    } else {
+      // デフォルト就寝時間を設定（23:00）
+      const defaultBedtime = '23:00';
+      startTime = defaultBedtime;
+      
+      // 現在時刻をチェックして、適切な就寝時間を提案
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      // 夜中（0-6時）の場合は現在時刻をベースに
+      if (currentHour >= 0 && currentHour <= 6) {
+        startTime = getCurrentTime();
+      }
+      // 昼間（7-21時）の場合はデフォルト時刻を使用
+      else if (currentHour >= 7 && currentHour <= 21) {
+        startTime = defaultBedtime;
+      }
+      // 夜（22-23時）の場合は現在時刻を使用
+      else {
+        startTime = getCurrentTime();
+      }
+    }
+    
+    // 終了時刻を計算
+    const endTime = addHoursToTime(startTime, hours);
+    const title = `睡眠（${hours}時間）`;
+    const priority = 'normal';
+    
+    // タスクを追加
+    addTask(title, startTime, endTime, priority);
+    
+    // 成功通知
+    const timeInfo = selectedTimeMinutes !== null ? 
+      `選択時刻から（${hours}時間）` : 
+      `${hours}時間`;
+    showNotification(`睡眠タスク ${timeInfo} を追加しました`, 'success');
+    
+    // 選択をクリア
+    clearTimeSelection();
+    
+    console.log(`睡眠テンプレート（${hours}時間）を追加しました:`, startTime, '-', endTime);
+    
+  } catch (error) {
+    console.error('睡眠テンプレート追加エラー:', error);
+    showNotification('睡眠テンプレートの追加に失敗しました', 'error');
+  }
+}
+
+// 指定時間を指定時間数後に計算
+function addHoursToTime(timeStr, hours) {
+  try {
+    const [baseHours, minutes] = timeStr.split(':').map(Number);
+    let totalHours = baseHours + hours;
+    
+    // 24時間を超える場合の処理
+    if (totalHours >= 24) {
+      totalHours = totalHours % 24;
+    }
+    
+    return `${String(totalHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    
+  } catch (error) {
+    console.error('時刻計算エラー:', error);
+    return '08:00'; // フォールバック
+  }
+}
+
+// 時刻文字列から時間数を計算
+function getHoursFromTime(timeStr) {
+  try {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours + (minutes / 60);
+  } catch (error) {
+    return 0;
+  }
+}
+
+// 時刻の妥当性をチェック
+function isValidTimeRange(startTime, endTime) {
+  const start = getHoursFromTime(startTime);
+  const end = getHoursFromTime(endTime);
+  
+  // 日をまたぐ場合を考慮
+  if (end < start) {
+    return true; // 例：23:00-07:00
+  }
+  
+  return end > start;
 }
 
 // 現在時刻を取得
@@ -1101,6 +1561,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // ドラッグ&ドロップの初期化
     initDrag();
     
+    // タイムライン選択機能の初期化
+    initTimelineSelection();
+    
     // ツールチップの初期化は削除（キーボードショートカット禁止のため）
     
     // 1秒ごとに時計と現在時刻ラインを更新
@@ -1114,9 +1577,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初回使用時のガイダンス
     if (tasks.length <= 4) { // ダミーデータのみの場合
       setTimeout(() => {
-        showNotification('✨ NowTaskへようこそ！ドラッグでタスクを移動、クリックで編集できます', 'info');
+        showNotification('✨ NowTaskへようこそ！タイムラインをクリックして時刻選択、ドラッグでタスク移動ができます', 'info');
       }, 1000);
     }
+    
+    // デバッグ用：タイムライン選択機能のテスト
+    setTimeout(() => {
+      console.log('📍 タイムライン選択機能テスト:');
+      console.log('- タイムライン要素:', document.getElementById('timeline-grid'));
+      console.log('- セレクター要素:', document.getElementById('time-selector'));
+      console.log('- ステータス要素:', document.getElementById('time-selection-status'));
+      console.log('- テスト: 12:00 (720分) に設定してみます...');
+      
+      // テスト用の時刻設定
+      // setSelectedTime(720); // 12:00をテスト（コメントアウトしておく）
+    }, 2000);
     
   } catch (error) {
     console.error('初期化エラー:', error);

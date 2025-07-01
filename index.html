@@ -86,7 +86,18 @@
       </div>
 
       <!-- タイムライングリッド -->
-      <div class="timeline-grid" role="grid" aria-label="日次タスクタイムライン">
+      <div class="timeline-grid" role="grid" aria-label="日次タスクタイムライン" id="timeline-grid">
+        <!-- 時刻選択インジケーター -->
+        <div class="time-selector" id="time-selector" style="display: none;">
+          <div class="selector-line"></div>
+          <div class="selector-handle">
+            <span class="selector-time" id="selector-time">12:00</span>
+            <div class="selector-actions">
+              <button class="selector-btn" onclick="clearTimeSelection()" title="選択解除">✕</button>
+            </div>
+          </div>
+        </div>
+        
         <!-- 現在時刻ライン -->
         <div 
           id="now-line" 
@@ -124,11 +135,51 @@
           </div>
         </section>
         
+        <!-- タスクテンプレート -->
+        <section class="sidebar-section">
+          <h3 class="sidebar-section-title">テンプレート</h3>
+          
+          <!-- 時刻選択状態 -->
+          <div class="time-selection-status" id="time-selection-status" style="display: none;">
+            <div class="selection-info">
+              <span class="selection-icon">📍</span>
+              <span class="selection-text">選択時刻: <span id="selected-time-display">--:--</span></span>
+              <button class="clear-selection-btn" onclick="clearTimeSelection()" title="選択解除">✕</button>
+            </div>
+          </div>
+          
+          <div class="template-actions">
+            <button class="template-btn work-shift" onclick="addWorkShiftTemplate()">
+              <span class="template-icon">🌙</span>
+              <span class="template-text">夜勤</span>
+              <span class="template-time">17:00-9:00</span>
+            </button>
+            
+            <div class="sleep-template-group">
+              <div class="template-label">睡眠</div>
+              <div class="sleep-options">
+                <button class="sleep-btn" onclick="addSleepTemplate(6)">
+                  <span class="sleep-icon">😴</span>
+                  <span class="sleep-text">6時間</span>
+                </button>
+                <button class="sleep-btn" onclick="addSleepTemplate(7)">
+                  <span class="sleep-icon">💤</span>
+                  <span class="sleep-text">7時間</span>
+                </button>
+                <button class="sleep-btn" onclick="addSleepTemplate(8)">
+                  <span class="sleep-icon">🛌</span>
+                  <span class="sleep-text">8時間</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- クイックアクション -->
         <section class="sidebar-section">
           <h3 class="sidebar-section-title">クイックアクション</h3>
           <div class="quick-actions">
-            <button class="action-btn primary" onclick="addCustomTask()">
+            <button class="action-btn primary" onclick="toggleCustomTaskForm()">
               <span class="btn-icon">➕</span>
               <span class="btn-text">詳細タスク追加</span>
             </button>
@@ -136,7 +187,76 @@
               <span class="btn-icon">🗑️</span>
               <span class="btn-text">完了済み削除</span>
             </button>
-
+          </div>
+          
+          <!-- 詳細タスク追加フォーム -->
+          <div id="custom-task-form" class="custom-task-form" style="display: none;">
+            <div class="form-header">
+              <h4 class="form-title">新しいタスクを追加</h4>
+              <button class="form-close-btn" onclick="hideCustomTaskForm()">✕</button>
+            </div>
+            
+            <div class="form-content">
+              <div class="form-group">
+                <label for="task-title-input" class="form-label">タスク名</label>
+                <input 
+                  type="text" 
+                  id="task-title-input" 
+                  class="form-input" 
+                  placeholder="例：プレゼン資料作成"
+                  maxlength="100"
+                >
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="task-start-time" class="form-label">開始時刻</label>
+                  <input 
+                    type="time" 
+                    id="task-start-time" 
+                    class="form-input form-input-time"
+                  >
+                </div>
+                <div class="form-group">
+                  <label for="task-end-time" class="form-label">終了時刻</label>
+                  <input 
+                    type="time" 
+                    id="task-end-time" 
+                    class="form-input form-input-time"
+                  >
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">優先度</label>
+                <div class="priority-options">
+                  <label class="priority-option">
+                    <input type="radio" name="task-priority" value="normal" checked>
+                    <span class="priority-indicator normal"></span>
+                    <span class="priority-label">通常</span>
+                  </label>
+                  <label class="priority-option">
+                    <input type="radio" name="task-priority" value="high">
+                    <span class="priority-indicator high"></span>
+                    <span class="priority-label">高優先度</span>
+                  </label>
+                  <label class="priority-option">
+                    <input type="radio" name="task-priority" value="urgent">
+                    <span class="priority-indicator urgent"></span>
+                    <span class="priority-label">緊急</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="form-actions">
+                <button class="form-btn form-btn-cancel" onclick="hideCustomTaskForm()">
+                  キャンセル
+                </button>
+                <button class="form-btn form-btn-save" onclick="saveCustomTask()">
+                  追加する
+                </button>
+              </div>
+            </div>
           </div>
         </section>
         
