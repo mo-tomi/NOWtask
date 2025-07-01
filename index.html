@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NowTask - Personal Task Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo">NowTask</h1>
+    </div>
+    <div class="header-center">
+      <div id="main-clock" class="main-clock">2025-07-01 14:08</div>
+    </div>
+    <div class="header-right">
+      <div id="header-clock" class="header-clock">14:08</div>
+    </div>
+  </header>
+
+  <!-- クイック追加バー -->
+  <div class="quick-add-bar">
+    <input type="text" id="quick-input" class="quick-input" placeholder="宿題をする">
+    <button id="add-btn" class="add-btn" onclick="addQuickTask()">＋</button>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <main class="main-content">
+    <!-- タイムラインパネル -->
+    <div class="timeline-panel">
+      <!-- 時刻ラベル -->
+      <div class="time-labels">
+        <div class="time-label" style="top: 0px;">0:00</div>
+        <div class="time-label" style="top: 60px;">1:00</div>
+        <div class="time-label" style="top: 120px;">2:00</div>
+        <div class="time-label" style="top: 180px;">3:00</div>
+        <div class="time-label" style="top: 240px;">4:00</div>
+        <div class="time-label" style="top: 300px;">5:00</div>
+        <div class="time-label" style="top: 360px;">6:00</div>
+        <div class="time-label" style="top: 420px;">7:00</div>
+        <div class="time-label" style="top: 480px;">8:00</div>
+        <div class="time-label" style="top: 540px;">9:00</div>
+        <div class="time-label" style="top: 600px;">10:00</div>
+        <div class="time-label" style="top: 660px;">11:00</div>
+        <div class="time-label" style="top: 720px;">12:00</div>
+        <div class="time-label" style="top: 780px;">13:00</div>
+        <div class="time-label" style="top: 840px;">14:00</div>
+        <div class="time-label" style="top: 900px;">15:00</div>
+        <div class="time-label" style="top: 960px;">16:00</div>
+        <div class="time-label" style="top: 1020px;">17:00</div>
+        <div class="time-label" style="top: 1080px;">18:00</div>
+        <div class="time-label" style="top: 1140px;">19:00</div>
+        <div class="time-label" style="top: 1200px;">20:00</div>
+        <div class="time-label" style="top: 1260px;">21:00</div>
+        <div class="time-label" style="top: 1320px;">22:00</div>
+        <div class="time-label" style="top: 1380px;">23:00</div>
+      </div>
+
+      <!-- タイムライングリッド -->
+      <div class="timeline-grid">
+        <!-- 現在時刻ライン -->
+        <div id="now-line" class="now-line" style="top: 848px;"></div>
+
+        <!-- ダミータスクカード -->
+        <!-- 夜勤 17:00-23:59 (420分 = 420px) -->
+        <div class="task-card" style="top: 1020px; height: 420px;" onclick="alert('夜勤カードクリック')">
+          <input type="checkbox" class="task-checkbox" disabled>
+          <div class="task-title">夜勤</div>
+          <div class="task-time">17:00-23:59</div>
+        </div>
+
+        <!-- 夜勤 0:00-09:00 (540分 = 540px) -->
+        <div class="task-card" style="top: 0px; height: 540px;" onclick="alert('夜勤カードクリック')">
+          <input type="checkbox" class="task-checkbox" disabled>
+          <div class="task-title">夜勤</div>
+          <div class="task-time">0:00-09:00</div>
+        </div>
+
+        <!-- 勉強 10:00-11:00 (60分 = 60px) -->
+        <div class="task-card priority-high" style="top: 600px; height: 60px;" onclick="alert('勉強カードクリック')">
+          <input type="checkbox" class="task-checkbox" disabled>
+          <div class="task-title">勉強</div>
+          <div class="task-time">10:00-11:00</div>
+        </div>
+
+        <!-- ゲーム 13:30-14:15 (45分 = 45px) -->
+        <div class="task-card priority-urgent" style="top: 810px; height: 45px;" onclick="alert('ゲームカードクリック')">
+          <input type="checkbox" class="task-checkbox" disabled>
+          <div class="task-title">ゲーム</div>
+          <div class="task-time">13:30-14:15</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- サイドバー -->
+    <div class="sidebar">
+      <!-- 段階1では空白のグレー矩形 -->
+    </div>
+  </main>
+
+  <!-- フッター -->
+  <footer class="footer">
+    <div class="footer-content">© 2025 TOMI</div>
+  </footer>
+
+  <script src="nowtask.js"></script>
+</body>
+</html>

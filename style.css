@@ -1,0 +1,291 @@
+/* フォント設定 */
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  margin: 0;
+  padding: 0;
+  background-color: #F5F7FA;
+  overflow-x: hidden;
+}
+
+/* ヘッダー */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #2E8BFF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-left .logo {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.header-center .main-clock {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header-right .header-clock {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* クイック追加バー */
+.quick-add-bar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid #e0e0e0;
+  z-index: 999;
+}
+
+.quick-input {
+  flex: 1;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.quick-input:focus {
+  outline: none;
+  border-color: #2E8BFF;
+}
+
+.add-btn {
+  width: 36px;
+  height: 36px;
+  background-color: #2E8BFF;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-btn:hover {
+  background-color: #1E7BEF;
+}
+
+/* メインコンテンツ */
+.main-content {
+  margin-top: 110px; /* ヘッダー + クイック追加バー */
+  margin-bottom: 60px; /* フッター分 */
+  display: flex;
+  min-height: calc(100vh - 170px);
+}
+
+/* タイムラインパネル */
+.timeline-panel {
+  flex: 1;
+  max-width: 600px;
+  position: relative;
+  background-color: white;
+  margin-right: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  overflow-y: auto;
+  height: 1440px; /* 24時間 = 1440分 = 1440px */
+}
+
+/* 時刻ラベル */
+.time-labels {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 60px;
+  height: 100%;
+  background-color: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+}
+
+.time-label {
+  position: absolute;
+  left: 8px;
+  font-size: 12px;
+  color: #666;
+  font-weight: 400;
+  transform: translateY(-6px);
+}
+
+/* タイムライングリッド */
+.timeline-grid {
+  margin-left: 60px;
+  position: relative;
+  height: 1440px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 59px,
+    #e0e0e0 59px,
+    #e0e0e0 60px
+  );
+}
+
+/* 現在時刻ライン */
+.now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #FF4C4C;
+  z-index: 100;
+}
+
+/* タスクカード */
+.task-card {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  background-color: #F0F8FF;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  cursor: pointer;
+  min-height: 30px;
+}
+
+.task-card:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.task-card.priority-high {
+  background-color: #FFE4B5;
+}
+
+.task-card.priority-urgent {
+  background-color: #FFB6C1;
+}
+
+.task-checkbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.task-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+  margin-right: 20px;
+}
+
+.task-time {
+  font-size: 12px;
+  color: #666;
+}
+
+/* サイドバー */
+.sidebar {
+  width: 240px;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  min-height: 400px;
+}
+
+/* フッター */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #2E8BFF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.footer-content {
+  font-size: 14px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  body {
+    font-size: 13px;
+  }
+  
+  .header {
+    padding: 0 15px;
+  }
+  
+  .header-left .logo {
+    font-size: 20px;
+  }
+  
+  .header-center .main-clock {
+    font-size: 16px;
+  }
+  
+  .quick-add-bar {
+    padding: 0 15px;
+  }
+  
+  .main-content {
+    flex-direction: column;
+  }
+  
+  .timeline-panel {
+    max-width: none;
+    margin-right: 0;
+    margin-bottom: 20px;
+  }
+  
+  .sidebar {
+    width: 100%;
+    min-height: 200px;
+  }
+  
+  .time-labels {
+    width: 50px;
+  }
+  
+  .time-label {
+    font-size: 11px;
+    left: 6px;
+  }
+  
+  .timeline-grid {
+    margin-left: 50px;
+  }
+  
+  .task-card {
+    left: 8px;
+    right: 8px;
+    padding: 6px;
+  }
+  
+  .task-title {
+    font-size: 13px;
+  }
+  
+  .task-time {
+    font-size: 11px;
+  }
+}
