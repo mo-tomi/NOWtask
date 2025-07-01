@@ -319,10 +319,24 @@ export function ensureVisibleDays(centerDate) {
  */
 function updateHeaderDate(date) {
   try {
-    const headerDate = document.getElementById('header-date');
-    if (headerDate) {
-      headerDate.textContent = formatDateForDisplay(date);
+    const mainClock = document.getElementById('main-clock');
+    if (mainClock) {
+      // 現在時刻を取得
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      mainClock.textContent = `${date} ${timeString}`;
     }
+
+    // AppStateのcurrentDateも更新
+    if (window.AppState) {
+      window.AppState.currentDate = date;
+    }
+
+    // URLも更新
+    updateURL(date);
   } catch (error) {
     console.error('ヘッダー日付更新エラー:', error);
   }

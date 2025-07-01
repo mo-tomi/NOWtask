@@ -53,6 +53,12 @@ import {
 function initializeAppState() {
   console.log('🏗️ AppState初期化開始');
 
+  // URLから日付パラメータを取得
+  const urlParams = new URLSearchParams(window.location.search);
+  const dateFromURL = urlParams.get('date');
+  const initialDate = (dateFromURL && /^\d{4}-\d{2}-\d{2}$/.test(dateFromURL)) ?
+    dateFromURL : getCurrentDateString();
+
   window.AppState = {
     // データ管理
     tasks: [],
@@ -61,7 +67,7 @@ function initializeAppState() {
       completed: 'all',
       search: ''
     },
-    currentDate: getCurrentDateString(),
+    currentDate: initialDate,
 
     // UI状態
     sidebarCollapsed: false,
@@ -194,9 +200,19 @@ function initializeClock() {
         second: '2-digit'
       });
 
-      const clockElement = document.getElementById('current-time');
+      // ヘッダー時計を更新（時刻のみ）
+      const clockElement = document.getElementById('header-clock');
       if (clockElement) {
         clockElement.textContent = timeString;
+      }
+
+      // メイン時計を更新（現在の日付+時刻）
+      const mainClock = document.getElementById('main-clock');
+      if (mainClock) {
+        const currentDate = window.AppState.currentDate;
+        const dateObj = new Date(currentDate + 'T' + timeString);
+        const displayText = `${currentDate} ${timeString.slice(0, 5)}`; // 秒を除く
+        mainClock.textContent = displayText;
       }
 
     } catch (error) {
@@ -343,6 +359,220 @@ function exposeGlobalFunctions() {
     const confirmed = confirm(`「${task.title}」を削除しますか？`);
     if (confirmed) {
       window.deleteTask(taskId);
+    }
+  };
+
+  // クイック追加機能
+  window.addQuickTask = function() {
+    try {
+      const input = document.getElementById('quick-input');
+      if (!input || !input.value.trim()) {
+        return;
+      }
+
+      const title = input.value.trim();
+      const currentDate = window.AppState.currentDate;
+      
+      // 現在時刻から1時間後のタスクを作成
+      const now = new Date();
+      const startHour = now.getHours();
+      const startTime = `${startHour.toString().padStart(2, '0')}:00`;
+      const endTime = `${(startHour + 1).toString().padStart(2, '0')}:00`;
+
+      const newTask = new Task(
+        null,
+        title,
+        startTime,
+        endTime,
+        'normal',
+        currentDate
+      );
+
+      window.AppState.tasks.push(newTask);
+      saveToStorage();
+      recalculateAllLanes();
+
+      // 該当日付パネルを再描画
+      const dayPanel = document.querySelector(`[data-date="${currentDate}"]`);
+      if (dayPanel) {
+        renderTasksToPanel(currentDate, dayPanel);
+      }
+
+      // 入力フィールドをクリア
+      input.value = '';
+      
+      console.log('✅ クイックタスクを作成:', newTask.id);
+      return newTask.id;
+
+    } catch (error) {
+      console.error('クイックタスク作成エラー:', error);
+      return null;
+    }
+  };
+
+  // 夜勤テンプレート追加
+  window.addWorkShiftTemplate = function() {
+    try {
+      const currentDate = window.AppState.currentDate;
+      
+      const newTask = new Task(
+        null,
+        '夜勤',
+        '17:00',
+        '09:00', // 翌日9時まで（日付跨ぎ）
+        'high',
+        currentDate
+      );
+
+      window.AppState.tasks.push(newTask);
+      saveToStorage();
+      recalculateAllLanes();
+
+      // 該当日付パネルを再描画
+      const dayPanel = document.querySelector(`[data-date="${currentDate}"]`);
+      if (dayPanel) {
+        renderTasksToPanel(currentDate, dayPanel);
+      }
+
+      console.log('✅ 夜勤テンプレートを追加:', newTask.id);
+      return newTask.id;
+
+    } catch (error) {
+      console.error('夜勤テンプレート追加エラー:', error);
+      return null;
+    }
+  };
+
+  // 睡眠テンプレート追加
+  window.addSleepTemplate = function(hours) {
+    try {
+      const currentDate = window.AppState.currentDate;
+      
+      // 23:00開始で指定時間の睡眠タスクを作成
+      const startHour = 23;
+      const endHour = (startHour + hours) % 24;
+      const startTime = `${startHour.toString().padStart(2, '0')}:00`;
+      const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+
+      const newTask = new Task(
+        null,
+        `睡眠 (${hours}時間)`,
+        startTime,
+        endTime,
+        'normal',
+        currentDate
+      );
+
+      window.AppState.tasks.push(newTask);
+      saveToStorage();
+      recalculateAllLanes();
+
+      // 該当日付パネルを再描画
+      const dayPanel = document.querySelector(`[data-date="${currentDate}"]`);
+      if (dayPanel) {
+        renderTasksToPanel(currentDate, dayPanel);
+      }
+
+      console.log('✅ 睡眠テンプレートを追加:', hours + '時間', newTask.id);
+      return newTask.id;
+
+    } catch (error) {
+      console.error('睡眠テンプレート追加エラー:', error);
+      return null;
+    }
+  };
+
+  // カスタムタスクフォーム切り替え
+  window.toggleCustomTaskForm = function() {
+    try {
+      const form = document.getElementById('custom-task-form');
+      if (!form) {
+        console.warn('カスタムタスクフォームが見つかりません');
+        return;
+      }
+
+      const isVisible = form.style.display !== 'none';
+      form.style.display = isVisible ? 'none' : 'block';
+
+      console.log('📝 カスタムタスクフォーム:', isVisible ? '非表示' : '表示');
+      return !isVisible;
+
+    } catch (error) {
+      console.error('カスタムタスクフォーム切り替えエラー:', error);
+      return false;
+    }
+  };
+
+  // その他のサイドバー機能
+  window.hideCustomTaskForm = function() {
+    try {
+      const form = document.getElementById('custom-task-form');
+      if (form) {
+        form.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('フォーム非表示エラー:', error);
+    }
+  };
+
+  window.clearCompleted = function() {
+    try {
+      const completedTasks = window.AppState.tasks.filter(task => task.completed);
+      if (completedTasks.length === 0) {
+        alert('完了済みタスクがありません');
+        return;
+      }
+
+      const confirmed = confirm(`${completedTasks.length}個の完了済みタスクを削除しますか？`);
+      if (!confirmed) {
+        return;
+      }
+
+      // 完了済みタスクを削除
+      window.AppState.tasks = window.AppState.tasks.filter(task => !task.completed);
+      saveToStorage();
+      recalculateAllLanes();
+
+      // 表示中の日付パネルを再描画
+      const currentDate = window.AppState.currentDate;
+      const dayPanel = document.querySelector(`[data-date="${currentDate}"]`);
+      if (dayPanel) {
+        renderTasksToPanel(currentDate, dayPanel);
+      }
+
+      console.log('🗑️ 完了済みタスクを削除:', completedTasks.length + '個');
+
+    } catch (error) {
+      console.error('完了済み削除エラー:', error);
+    }
+  };
+
+  window.showDatePicker = function() {
+    try {
+      const currentDate = window.AppState.currentDate;
+      const newDate = prompt('日付を入力してください (YYYY-MM-DD):', currentDate);
+      
+      if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+        window.jumpToDate(newDate);
+      } else if (newDate) {
+        alert('正しい形式で入力してください (YYYY-MM-DD)');
+      }
+    } catch (error) {
+      console.error('日付ピッカーエラー:', error);
+    }
+  };
+
+  window.navigateDate = function(direction) {
+    try {
+      const currentDate = window.AppState.currentDate;
+      const date = new Date(currentDate);
+      date.setDate(date.getDate() + direction);
+      
+      const newDateString = date.toISOString().split('T')[0];
+      window.jumpToDate(newDateString);
+      
+    } catch (error) {
+      console.error('日付ナビゲーションエラー:', error);
     }
   };
 }

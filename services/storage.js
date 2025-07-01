@@ -43,9 +43,13 @@ export class Task {
 
       // 日付跨ぎタスクの場合は特別に許可
       if (endMin <= startMin) {
-        // 日付跨ぎかどうかの簡易チェック（23:00以降開始で翌日08:00以前終了など）
-        const isLikelyOvernight = startMin >= 22 * 60 && endMin <= 8 * 60;
-        if (!isLikelyOvernight) {
+        // 日付跨ぎかどうかの判定（より柔軟な条件）
+        // 条件1: 17:00以降開始で翌日12:00以前終了（夜勤パターン）
+        // 条件2: 22:00以降開始で翌日08:00以前終了（睡眠パターン）
+        const isNightShift = startMin >= 17 * 60 && endMin <= 12 * 60;
+        const isSleepPattern = startMin >= 22 * 60 && endMin <= 8 * 60;
+        
+        if (!isNightShift && !isSleepPattern) {
           throw new Error('終了時刻は開始時刻より後である必要があります（日付跨ぎの場合を除く）');
         }
       }

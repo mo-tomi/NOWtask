@@ -8,7 +8,7 @@
   <meta name="author" content="TOMI">
   <title>NowTask - Personal Task Manager</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.scss">
+  <link rel="stylesheet" href="style.css">
   <!-- プリロード最適化 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,65 +55,9 @@
 
   <!-- メインコンテンツ -->
   <main class="main-content">
-    <!-- タイムラインパネル -->
+    <!-- タイムラインコンテナ（仮想スクロール用） -->
     <div class="timeline-container">
-        <!-- 時刻ラベル -->
-        <div class="time-labels" role="navigation" aria-label="24時間タイムライン">
-        <div class="time-label" style="top: 0px;" data-hour="0" aria-label="0時00分">0:00</div>
-        <div class="time-label" style="top: 60px;" data-hour="1" aria-label="1時00分">1:00</div>
-        <div class="time-label" style="top: 120px;" data-hour="2" aria-label="2時00分">2:00</div>
-        <div class="time-label" style="top: 180px;" data-hour="3" aria-label="3時00分">3:00</div>
-        <div class="time-label" style="top: 240px;" data-hour="4" aria-label="4時00分">4:00</div>
-        <div class="time-label" style="top: 300px;" data-hour="5" aria-label="5時00分">5:00</div>
-        <div class="time-label" style="top: 360px;" data-hour="6" aria-label="6時00分">6:00</div>
-        <div class="time-label" style="top: 420px;" data-hour="7" aria-label="7時00分">7:00</div>
-        <div class="time-label" style="top: 480px;" data-hour="8" aria-label="8時00分">8:00</div>
-        <div class="time-label" style="top: 540px;" data-hour="9" aria-label="9時00分">9:00</div>
-        <div class="time-label" style="top: 600px;" data-hour="10" aria-label="10時00分">10:00</div>
-        <div class="time-label" style="top: 660px;" data-hour="11" aria-label="11時00分">11:00</div>
-        <div class="time-label" style="top: 720px;" data-hour="12" aria-label="12時00分">12:00</div>
-        <div class="time-label" style="top: 780px;" data-hour="13" aria-label="13時00分">13:00</div>
-        <div class="time-label" style="top: 840px;" data-hour="14" aria-label="14時00分">14:00</div>
-        <div class="time-label" style="top: 900px;" data-hour="15" aria-label="15時00分">15:00</div>
-        <div class="time-label" style="top: 960px;" data-hour="16" aria-label="16時00分">16:00</div>
-        <div class="time-label" style="top: 1020px;" data-hour="17" aria-label="17時00分">17:00</div>
-        <div class="time-label" style="top: 1080px;" data-hour="18" aria-label="18時00分">18:00</div>
-        <div class="time-label" style="top: 1140px;" data-hour="19" aria-label="19時00分">19:00</div>
-        <div class="time-label" style="top: 1200px;" data-hour="20" aria-label="20時00分">20:00</div>
-        <div class="time-label" style="top: 1260px;" data-hour="21" aria-label="21時00分">21:00</div>
-        <div class="time-label" style="top: 1320px;" data-hour="22" aria-label="22時00分">22:00</div>
-        <div class="time-label" style="top: 1380px;" data-hour="23" aria-label="23時00分">23:00</div>
-      </div>
-
-      <!-- タイムライングリッド -->
-      <div 
-        class="timeline-grid" 
-        role="grid" 
-        aria-label="24時間タスクタイムライン" 
-        id="timeline-grid"
-      >
-        <!-- 時刻選択インジケーター -->
-        <div class="time-selector" id="time-selector" style="display: none;">
-          <div class="selector-line"></div>
-          <div class="selector-handle">
-            <span class="selector-time" id="selector-time">12:00</span>
-            <div class="selector-actions">
-              <button class="selector-btn" onclick="clearTimeSelection()" title="選択解除">✕</button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 現在時刻ライン -->
-        <div 
-          id="now-line" 
-          class="now-line" 
-          style="top: 848px;"
-          role="separator"
-          aria-label="現在時刻ライン"
-        ></div>
-
-        <!-- タスクカードはJavaScriptで動的に生成されます -->
-      </div>
+      <!-- 日付パネルはJavaScriptで動的に生成されます -->
     </div>
 
     <!-- サイドバー -->
