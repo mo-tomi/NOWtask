@@ -3,9 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NowTask - 1日の予定を縦タイムラインで可視化するパーソナルタスクマネージャー">
+  <meta name="keywords" content="タスク管理,スケジュール,タイムライン,TODO,時間管理">
+  <meta name="author" content="TOMI">
   <title>NowTask - Personal Task Manager</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <!-- プリロード最適化 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
   <!-- ヘッダー -->
@@ -22,83 +28,140 @@
   </header>
 
   <!-- クイック追加バー -->
-  <div class="quick-add-bar">
-    <input type="text" id="quick-input" class="quick-input" placeholder="宿題をする">
-    <button id="add-btn" class="add-btn" onclick="addQuickTask()">＋</button>
-  </div>
+  <section class="quick-add-bar" role="banner">
+    <input 
+      type="text" 
+      id="quick-input" 
+      class="quick-input" 
+      placeholder="宿題をする"
+      aria-label="新しいタスクを入力"
+      autocomplete="off"
+      maxlength="100"
+    >
+    <button 
+      id="add-btn" 
+      class="add-btn" 
+      onclick="addQuickTask()"
+      aria-label="新しいタスクを追加"
+      type="button"
+    >
+      <span aria-hidden="true">＋</span>
+    </button>
+  </section>
 
   <!-- メインコンテンツ -->
   <main class="main-content">
     <!-- タイムラインパネル -->
     <div class="timeline-panel">
       <!-- 時刻ラベル -->
-      <div class="time-labels">
-        <div class="time-label" style="top: 0px;">0:00</div>
-        <div class="time-label" style="top: 60px;">1:00</div>
-        <div class="time-label" style="top: 120px;">2:00</div>
-        <div class="time-label" style="top: 180px;">3:00</div>
-        <div class="time-label" style="top: 240px;">4:00</div>
-        <div class="time-label" style="top: 300px;">5:00</div>
-        <div class="time-label" style="top: 360px;">6:00</div>
-        <div class="time-label" style="top: 420px;">7:00</div>
-        <div class="time-label" style="top: 480px;">8:00</div>
-        <div class="time-label" style="top: 540px;">9:00</div>
-        <div class="time-label" style="top: 600px;">10:00</div>
-        <div class="time-label" style="top: 660px;">11:00</div>
-        <div class="time-label" style="top: 720px;">12:00</div>
-        <div class="time-label" style="top: 780px;">13:00</div>
-        <div class="time-label" style="top: 840px;">14:00</div>
-        <div class="time-label" style="top: 900px;">15:00</div>
-        <div class="time-label" style="top: 960px;">16:00</div>
-        <div class="time-label" style="top: 1020px;">17:00</div>
-        <div class="time-label" style="top: 1080px;">18:00</div>
-        <div class="time-label" style="top: 1140px;">19:00</div>
-        <div class="time-label" style="top: 1200px;">20:00</div>
-        <div class="time-label" style="top: 1260px;">21:00</div>
-        <div class="time-label" style="top: 1320px;">22:00</div>
-        <div class="time-label" style="top: 1380px;">23:00</div>
+      <div class="time-labels" role="navigation" aria-label="24時間タイムライン">
+        <div class="time-label" style="top: 0px;" data-hour="0" aria-label="0時00分">0:00</div>
+        <div class="time-label" style="top: 60px;" data-hour="1" aria-label="1時00分">1:00</div>
+        <div class="time-label" style="top: 120px;" data-hour="2" aria-label="2時00分">2:00</div>
+        <div class="time-label" style="top: 180px;" data-hour="3" aria-label="3時00分">3:00</div>
+        <div class="time-label" style="top: 240px;" data-hour="4" aria-label="4時00分">4:00</div>
+        <div class="time-label" style="top: 300px;" data-hour="5" aria-label="5時00分">5:00</div>
+        <div class="time-label" style="top: 360px;" data-hour="6" aria-label="6時00分">6:00</div>
+        <div class="time-label" style="top: 420px;" data-hour="7" aria-label="7時00分">7:00</div>
+        <div class="time-label" style="top: 480px;" data-hour="8" aria-label="8時00分">8:00</div>
+        <div class="time-label" style="top: 540px;" data-hour="9" aria-label="9時00分">9:00</div>
+        <div class="time-label" style="top: 600px;" data-hour="10" aria-label="10時00分">10:00</div>
+        <div class="time-label" style="top: 660px;" data-hour="11" aria-label="11時00分">11:00</div>
+        <div class="time-label" style="top: 720px;" data-hour="12" aria-label="12時00分">12:00</div>
+        <div class="time-label" style="top: 780px;" data-hour="13" aria-label="13時00分">13:00</div>
+        <div class="time-label" style="top: 840px;" data-hour="14" aria-label="14時00分">14:00</div>
+        <div class="time-label" style="top: 900px;" data-hour="15" aria-label="15時00分">15:00</div>
+        <div class="time-label" style="top: 960px;" data-hour="16" aria-label="16時00分">16:00</div>
+        <div class="time-label" style="top: 1020px;" data-hour="17" aria-label="17時00分">17:00</div>
+        <div class="time-label" style="top: 1080px;" data-hour="18" aria-label="18時00分">18:00</div>
+        <div class="time-label" style="top: 1140px;" data-hour="19" aria-label="19時00分">19:00</div>
+        <div class="time-label" style="top: 1200px;" data-hour="20" aria-label="20時00分">20:00</div>
+        <div class="time-label" style="top: 1260px;" data-hour="21" aria-label="21時00分">21:00</div>
+        <div class="time-label" style="top: 1320px;" data-hour="22" aria-label="22時00分">22:00</div>
+        <div class="time-label" style="top: 1380px;" data-hour="23" aria-label="23時00分">23:00</div>
       </div>
 
       <!-- タイムライングリッド -->
-      <div class="timeline-grid">
+      <div class="timeline-grid" role="grid" aria-label="日次タスクタイムライン">
         <!-- 現在時刻ライン -->
-        <div id="now-line" class="now-line" style="top: 848px;"></div>
+        <div 
+          id="now-line" 
+          class="now-line" 
+          style="top: 848px;"
+          role="separator"
+          aria-label="現在時刻ライン"
+        ></div>
 
-        <!-- ダミータスクカード -->
-        <!-- 夜勤 17:00-23:59 (420分 = 420px) -->
-        <div class="task-card" style="top: 1020px; height: 420px;" onclick="alert('夜勤カードクリック')">
-          <input type="checkbox" class="task-checkbox" disabled>
-          <div class="task-title">夜勤</div>
-          <div class="task-time">17:00-23:59</div>
-        </div>
-
-        <!-- 夜勤 0:00-09:00 (540分 = 540px) -->
-        <div class="task-card" style="top: 0px; height: 540px;" onclick="alert('夜勤カードクリック')">
-          <input type="checkbox" class="task-checkbox" disabled>
-          <div class="task-title">夜勤</div>
-          <div class="task-time">0:00-09:00</div>
-        </div>
-
-        <!-- 勉強 10:00-11:00 (60分 = 60px) -->
-        <div class="task-card priority-high" style="top: 600px; height: 60px;" onclick="alert('勉強カードクリック')">
-          <input type="checkbox" class="task-checkbox" disabled>
-          <div class="task-title">勉強</div>
-          <div class="task-time">10:00-11:00</div>
-        </div>
-
-        <!-- ゲーム 13:30-14:15 (45分 = 45px) -->
-        <div class="task-card priority-urgent" style="top: 810px; height: 45px;" onclick="alert('ゲームカードクリック')">
-          <input type="checkbox" class="task-checkbox" disabled>
-          <div class="task-title">ゲーム</div>
-          <div class="task-time">13:30-14:15</div>
-        </div>
+        <!-- タスクカードはJavaScriptで動的に生成されます -->
       </div>
     </div>
 
     <!-- サイドバー -->
-    <div class="sidebar">
-      <!-- 段階1では空白のグレー矩形 -->
-    </div>
+    <aside class="sidebar" role="complementary" aria-label="サイドバー">
+      <div class="sidebar-content">
+        <h2 class="sidebar-title">タスク管理</h2>
+        
+        <!-- タスク統計 -->
+        <section class="sidebar-section">
+          <h3 class="sidebar-section-title">本日の統計</h3>
+          <div class="task-stats">
+            <div class="stat-item">
+              <span class="stat-label">総タスク数</span>
+              <span class="stat-value" id="total-tasks">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">完了済み</span>
+              <span class="stat-value" id="completed-tasks">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">予定時間</span>
+              <span class="stat-value" id="total-hours">0h</span>
+            </div>
+          </div>
+        </section>
+        
+        <!-- クイックアクション -->
+        <section class="sidebar-section">
+          <h3 class="sidebar-section-title">クイックアクション</h3>
+          <div class="quick-actions">
+            <button class="action-btn primary" onclick="addCustomTask()">
+              <span class="btn-icon">➕</span>
+              <span class="btn-text">詳細タスク追加</span>
+            </button>
+            <button class="action-btn secondary" onclick="clearCompleted()">
+              <span class="btn-icon">🗑️</span>
+              <span class="btn-text">完了済み削除</span>
+            </button>
+            <button class="action-btn secondary" onclick="exportData()">
+              <span class="btn-icon">💾</span>
+              <span class="btn-text">データ保存</span>
+            </button>
+          </div>
+        </section>
+        
+        <!-- 優先度フィルタ -->
+        <section class="sidebar-section">
+          <h3 class="sidebar-section-title">表示フィルタ</h3>
+          <div class="filter-options">
+            <label class="filter-checkbox">
+              <input type="checkbox" checked onchange="toggleFilter('normal')" data-priority="normal">
+              <span class="checkmark normal"></span>
+              <span class="filter-label">通常</span>
+            </label>
+            <label class="filter-checkbox">
+              <input type="checkbox" checked onchange="toggleFilter('high')" data-priority="high">
+              <span class="checkmark high"></span>
+              <span class="filter-label">高優先度</span>
+            </label>
+            <label class="filter-checkbox">
+              <input type="checkbox" checked onchange="toggleFilter('urgent')" data-priority="urgent">
+              <span class="checkmark urgent"></span>
+              <span class="filter-label">緊急</span>
+            </label>
+          </div>
+        </section>
+      </div>
+    </aside>
   </main>
 
   <!-- フッター -->
