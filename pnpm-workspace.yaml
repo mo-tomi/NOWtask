@@ -1,0 +1,16 @@
+# pnpm Workspace 設定
+# NowTask プロジェクト
+
+packages:
+  # メインプロジェクト
+  - '.'
+  
+  # 将来的な拡張用（サブパッケージ）
+  # - 'packages/*'
+  # - 'plugins/*'
+  # - 'tools/*'
+
+# 共有設定
+shared-workspace-lockfile: true
+link-workspace-packages: true
+save-workspace-protocol: rolling 

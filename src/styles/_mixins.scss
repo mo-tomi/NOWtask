@@ -1,0 +1,250 @@
+/**
+ * NowTask SCSS Mixins
+ * 重複削除とサイズ最適化のためのmixin定義
+ */
+
+@use 'variables' as *;
+
+// ===== Task Card Base Mixin =====
+@mixin task-card-base {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  padding: $space-3;
+  background: $task-normal;
+  border: 1px solid $gray-200;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  user-select: none;
+  transition: all $transition-base ease;
+  
+  // GPU 最適化
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout style paint;
+  
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: $primary;
+    transform: translateZ(0);
+  }
+  
+  &:focus-within {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+    box-shadow: $shadow-lg;
+  }
+}
+
+// ===== Task Card Priority Variants =====
+@mixin task-card-priority($bg-color, $border-color, $accent-color) {
+  background-color: $bg-color;
+  border-color: $border-color;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    background-color: $accent-color;
+    border-radius: 0 $radius-sm $radius-sm 0;
+  }
+  
+  &:hover {
+    filter: brightness(1.05);
+    border-color: $accent-color;
+  }
+}
+
+// ===== Time Label Base =====
+@mixin time-label-base {
+  position: absolute;
+  left: -50px;
+  width: 45px;
+  text-align: right;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
+  pointer-events: none;
+  line-height: $line-height-tight;
+}
+
+// ===== Button Base =====
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-2 $space-4;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  border-radius: $radius-sm;
+  border: none;
+  cursor: pointer;
+  transition: all $transition-fast ease;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ===== Button Variants =====
+@mixin button-primary {
+  @include button-base;
+  background-color: $primary;
+  color: white;
+  
+  &:hover:not(:disabled) {
+    filter: brightness(0.92);
+    box-shadow: $shadow-sm;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background-color: $gray-100;
+  color: $gray-700;
+  border: 1px solid $gray-300;
+  
+  &:hover:not(:disabled) {
+    background-color: $gray-200;
+    border-color: $gray-400;
+  }
+}
+
+@mixin button-danger {
+  @include button-base;
+  background-color: $accent;
+  color: white;
+  
+  &:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
+}
+
+// ===== Layout Helpers =====
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin absolute-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+// ===== Responsive Helpers =====
+@mixin mobile {
+  @media (max-width: $breakpoint-mobile - 1px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: $breakpoint-mobile) and (max-width: $breakpoint-tablet - 1px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $breakpoint-desktop) {
+    @content;
+  }
+}
+
+// ===== Animation Helpers =====
+@mixin fade-in($duration: $transition-base) {
+  opacity: 0;
+  animation: fadeIn $duration ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@mixin slide-up($duration: $transition-base) {
+  transform: translateY(10px);
+  opacity: 0;
+  animation: slideUp $duration ease forwards;
+}
+
+@keyframes slideUp {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// ===== Performance Optimizations =====
+@mixin gpu-acceleration {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+@mixin contain-optimized {
+  contain: layout style paint;
+}
+
+// ===== Grid Lane System =====
+@mixin lane-grid($max-lanes) {
+  display: grid;
+  grid-template-columns: repeat($max-lanes, 1fr);
+  gap: $space-1;
+}
+
+// ===== Overnight Task Styling =====
+@mixin overnight-task {
+  border-left: 3px solid $accent;
+  background: linear-gradient(135deg, $task-normal 0%, rgba($accent, 0.1) 100%);
+  
+  &::before {
+    content: '🌙';
+    position: absolute;
+    top: $space-1;
+    right: $space-1;
+    font-size: 10px;
+    opacity: 0.7;
+  }
+}
+
+// ===== Text Utilities =====
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-wrap {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+// ===== Focus Management =====
+@mixin focus-visible {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
+}
+
+@mixin focus-invisible {
+  outline: none;
+} 

@@ -8,7 +8,7 @@
   <meta name="author" content="TOMI">
   <title>NowTask - Personal Task Manager</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/src/style.scss">
   <!-- プリロード最適化 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,9 +56,9 @@
   <!-- メインコンテンツ -->
   <main class="main-content">
     <!-- タイムラインパネル -->
-    <div class="timeline-panel">
-      <!-- 時刻ラベル -->
-      <div class="time-labels" role="navigation" aria-label="24時間タイムライン">
+    <div class="timeline-container">
+        <!-- 時刻ラベル -->
+        <div class="time-labels" role="navigation" aria-label="24時間タイムライン">
         <div class="time-label" style="top: 0px;" data-hour="0" aria-label="0時00分">0:00</div>
         <div class="time-label" style="top: 60px;" data-hour="1" aria-label="1時00分">1:00</div>
         <div class="time-label" style="top: 120px;" data-hour="2" aria-label="2時00分">2:00</div>
@@ -86,7 +86,12 @@
       </div>
 
       <!-- タイムライングリッド -->
-      <div class="timeline-grid" role="grid" aria-label="日次タスクタイムライン" id="timeline-grid">
+      <div 
+        class="timeline-grid" 
+        role="grid" 
+        aria-label="24時間タスクタイムライン" 
+        id="timeline-grid"
+      >
         <!-- 時刻選択インジケーター -->
         <div class="time-selector" id="time-selector" style="display: none;">
           <div class="selector-line"></div>
@@ -285,11 +290,22 @@
     </aside>
   </main>
 
+  <!-- ARIA Live Region for Screen Reader Announcements -->
+  <div 
+    id="aria-live-region" 
+    class="sr-only" 
+    aria-live="polite" 
+    aria-atomic="true"
+    role="status"
+  ></div>
+  
+
+
   <!-- フッター -->
   <footer class="footer">
     <div class="footer-content">© 2025 TOMI</div>
   </footer>
 
-  <script src="nowtask.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>

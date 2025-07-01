@@ -1,0 +1,603 @@
+/**
+ * NowTask Main SCSS
+ * 重複削除とサイズ最適化版
+ */
+
+@use 'styles/variables' as *;
+
+// ===== CSS Reset & Base =====
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: $font-family;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: $background;
+  color: $gray-800;
+  overflow: hidden;
+  height: 100vh;
+  font-feature-settings: 'liga' 1, 'kern' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ===== Layout =====
+.main-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+// ===== Header =====
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $header-height;
+  background: linear-gradient(135deg, $primary 0%, #2671D9 100%);
+  color: white;
+  box-shadow: $shadow-md;
+  z-index: $z-index-sticky;
+  
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $space-6;
+  
+  .logo {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    
+    .logo-icon {
+      font-size: $font-size-2xl;
+    }
+  }
+  
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+    
+    .date-display {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+    }
+    
+    .nav-arrows {
+      display: flex;
+      gap: $space-2;
+      
+      button {
+        background: rgba(white, 0.2);
+        border: 1px solid rgba(white, 0.3);
+        color: white;
+        border-radius: $radius-sm;
+        padding: $space-2 $space-3;
+        cursor: pointer;
+        transition: all $transition-fast ease;
+        
+        &:hover {
+          background: rgba(white, 0.3);
+          transform: translateY(-1px);
+        }
+      }
+    }
+    
+    .current-time {
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ===== Sidebar =====
+.sidebar {
+  width: $sidebar-width;
+  height: 100vh;
+  background: $background-white;
+  border-right: 1px solid $gray-200;
+  overflow-y: auto;
+  flex-shrink: 0;
+  
+  .sidebar-section {
+    padding: $space-5;
+    border-bottom: 1px solid $gray-100;
+    
+    h3 {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $gray-700;
+      margin-bottom: $space-3;
+    }
+  }
+  
+  .add-task-form {
+    .form-group {
+      margin-bottom: $space-4;
+      
+      label {
+        display: block;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $gray-600;
+        margin-bottom: $space-2;
+      }
+      
+      input, textarea, select {
+        width: 100%;
+        padding: $space-3;
+        border: 1px solid $gray-300;
+        border-radius: $radius-sm;
+        font-size: $font-size-sm;
+        transition: border-color $transition-fast ease;
+        
+        &:focus {
+          outline: none;
+          border-color: $primary;
+          box-shadow: 0 0 0 3px rgba($primary, 0.1);
+        }
+      }
+      
+      textarea {
+        resize: vertical;
+        min-height: 60px;
+      }
+    }
+    
+    .time-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $space-3;
+    }
+    
+    .add-task-btn {
+      width: 100%;
+      background: $primary;
+      color: white;
+      border: none;
+      padding: $space-3 $space-4;
+      border-radius: $radius-sm;
+      font-weight: $font-weight-medium;
+      cursor: pointer;
+      transition: all $transition-fast ease;
+      
+      &:hover {
+        filter: brightness(0.95);
+        transform: translateY(-1px);
+        box-shadow: $shadow-sm;
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// ===== Timeline Container =====
+.timeline-container {
+  flex: 1;
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  margin-top: $header-height;
+  
+  .scroll-container {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-snap-type: y mandatory;
+    
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: $gray-100;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: $gray-400;
+      border-radius: 4px;
+      
+      &:hover {
+        background: $gray-500;
+      }
+    }
+  }
+}
+
+// ===== Day Panel =====
+.day-panel {
+  position: relative;
+  height: $timeline-height;
+  width: $timeline-width;
+  margin: 0 auto;
+  scroll-snap-align: start;
+  border-bottom: 2px solid $gray-200;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// ===== Timeline Grid =====
+.timeline-grid {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 59px,
+    $gray-200 59px,
+    $gray-200 60px
+  );
+  
+  contain: layout style;
+  
+  &.recalculating-lanes {
+    .task-card {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+  }
+}
+
+// ===== Time Labels =====
+.time-labels {
+  position: absolute;
+  left: -60px;
+  top: 0;
+  height: 100%;
+  width: 50px;
+  pointer-events: none;
+  z-index: $z-index-base;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 10px;
+    width: 1px;
+    height: 100%;
+    background: $gray-300;
+  }
+}
+
+.time-label {
+  position: absolute;
+  left: 0;
+  width: 45px;
+  text-align: right;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-weight: $font-weight-medium;
+  pointer-events: none;
+  line-height: $line-height-tight;
+  font-variant-numeric: tabular-nums;
+  
+  &.current-hour {
+    color: $accent;
+    font-weight: $font-weight-semibold;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      right: -15px;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      background: $accent;
+      border-radius: 50%;
+      transform: translateY(-50%);
+    }
+  }
+}
+
+// ===== Now Line =====
+.now-line {
+  position: absolute;
+  left: -50px;
+  right: 0;
+  height: 2px;
+  background: $accent;
+  z-index: $z-index-sticky;
+  box-shadow: 0 0 4px rgba($accent, 0.5);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background: $accent;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba($accent, 0.8);
+  }
+  
+  &::after {
+    content: attr(data-time);
+    position: absolute;
+    right: $space-3;
+    top: -18px;
+    background: $accent;
+    color: white;
+    padding: $space-1 $space-2;
+    border-radius: $radius-sm;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// ===== Task Card (Optimized) =====
+.task-card {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  padding: $space-3;
+  background: $task-normal;
+  border: 1px solid $gray-200;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  user-select: none;
+  transition: all $transition-base ease;
+  font-size: $font-size-sm;
+  line-height: $line-height-snug;
+  
+  // Performance optimizations
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout style paint;
+  
+  .task-title {
+    font-weight: $font-weight-semibold;
+    color: $gray-800;
+    margin-bottom: $space-1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .task-time {
+    font-size: $font-size-xs;
+    color: $gray-500;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .task-actions {
+    position: absolute;
+    top: $space-2;
+    right: $space-2;
+    display: flex;
+    gap: $space-1;
+    opacity: 0;
+    transition: opacity $transition-fast ease;
+    
+    button {
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: $radius-sm;
+      background: rgba(white, 0.9);
+      color: $gray-600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      transition: all $transition-fast ease;
+      
+      &:hover {
+        background: $gray-100;
+        color: $gray-800;
+      }
+      
+      &.delete-btn:hover {
+        background: $accent;
+        color: white;
+      }
+    }
+  }
+  
+  .resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    cursor: ns-resize;
+    background: linear-gradient(to bottom, transparent, rgba($primary, 0.2));
+    opacity: 0;
+    transition: opacity $transition-fast ease;
+  }
+  
+  // States
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: $primary;
+    transform: translateZ(0);
+    
+    .task-actions,
+    .resize-handle {
+      opacity: 1;
+    }
+  }
+  
+  &:focus-within {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+    box-shadow: $shadow-lg;
+  }
+  
+  &.dragging {
+    opacity: 0.8;
+    transform: rotate(2deg) scale(1.02);
+    box-shadow: $shadow-xl;
+    z-index: $z-index-overlay;
+    border-color: $primary;
+  }
+  
+  &.overlap-warning {
+    border-color: $warning;
+    background: rgba($warning, 0.1);
+    
+    &::before {
+      content: '⚠️';
+      position: absolute;
+      top: $space-1;
+      left: $space-1;
+      font-size: 10px;
+    }
+  }
+  
+  // Priority variants
+  &.priority-high {
+    background: $task-high;
+    border-color: $warning;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 4px;
+      height: 100%;
+      background: $warning;
+      border-radius: 0 $radius-sm $radius-sm 0;
+    }
+  }
+  
+  &.priority-urgent {
+    background: $task-urgent;
+    border-color: $accent;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 4px;
+      height: 100%;
+      background: $accent;
+      border-radius: 0 $radius-sm $radius-sm 0;
+    }
+  }
+  
+  // Overnight task styling
+  &.overnight-part {
+    border-left: 3px solid $accent;
+    background: linear-gradient(135deg, $task-normal 0%, rgba($accent, 0.1) 100%);
+    
+    &::before {
+      content: '🌙';
+      position: absolute;
+      top: $space-1;
+      right: $space-1;
+      font-size: 10px;
+      opacity: 0.7;
+    }
+  }
+  
+  // Lane system
+  &[data-lane] {
+    position: absolute;
+  }
+  
+  // Dynamic grid widths (optimized)
+  &[data-max-lanes="2"] { width: calc((100% - 2px) / 2); }
+  &[data-max-lanes="3"] { width: calc((100% - 4px) / 3); }
+  &[data-max-lanes="4"] { width: calc((100% - 6px) / 4); }
+  &[data-max-lanes="5"] { width: calc((100% - 8px) / 5); }
+  
+  &[data-lane="0"] { left: 0; }
+  &[data-lane="1"] { left: calc(1 * (100% / var(--max-lanes)) + 2px); }
+  &[data-lane="2"] { left: calc(2 * (100% / var(--max-lanes)) + 4px); }
+  &[data-lane="3"] { left: calc(3 * (100% / var(--max-lanes)) + 6px); }
+  &[data-lane="4"] { left: calc(4 * (100% / var(--max-lanes)) + 8px); }
+}
+
+// ===== Performance Info =====
+.performance-info {
+  position: fixed;
+  bottom: $space-4;
+  right: $space-4;
+  background: rgba($gray-900, 0.9);
+  color: white;
+  padding: $space-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(8px);
+  z-index: $z-index-toast;
+  
+  &.fps-warning {
+    background: rgba($accent, 0.9);
+    animation: pulse 1s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
+}
+
+// ===== Mobile Responsive =====
+@media (max-width: $breakpoint-mobile - 1px) {
+  .sidebar {
+    position: fixed;
+    left: -$sidebar-width;
+    z-index: $z-index-overlay;
+    transition: left $transition-base ease;
+    
+    &.open {
+      left: 0;
+    }
+  }
+  
+  .timeline-container {
+    width: 100%;
+  }
+  
+  .day-panel {
+    width: 100%;
+    padding: 0 $space-4;
+  }
+  
+  .header {
+    .nav-controls {
+      gap: $space-2;
+      
+      .date-display {
+        font-size: $font-size-base;
+      }
+    }
+  }
+  
+  .task-card {
+    .task-title {
+      font-size: $font-size-xs;
+    }
+    
+    .task-time {
+      font-size: 10px;
+    }
+  }
+} 
