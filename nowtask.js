@@ -1,19 +1,27 @@
 // NowTask JavaScript - 段階2（基本機能実装）
 
+// ===== ユーティリティ関数 =====
+function getCurrentDateString() {
+  const now = new Date();
+  return now.toISOString().split('T')[0]; // "YYYY-MM-DD" 形式
+}
+
 // ===== データ構造定義 =====
 let tasks = [];
+let currentDate = getCurrentDateString(); // 現在表示中の日付
 let draggedTask = null;
 let dragOffset = { x: 0, y: 0 };
 
 // タスクのデータ構造
 class Task {
-  constructor(id, title, startTime, endTime, priority = 'normal') {
+  constructor(id, title, startTime, endTime, priority = 'normal', date = null) {
     this.id = id || this.generateId();
     this.title = title;
     this.startTime = startTime; // "HH:MM" 形式
     this.endTime = endTime;     // "HH:MM" 形式
     this.priority = priority;   // 'normal', 'high', 'urgent'
     this.completed = false;
+    this.date = date || getCurrentDateString(); // "YYYY-MM-DD" 形式
     this.createdAt = new Date().toISOString();
   }
   
@@ -84,13 +92,121 @@ function loadFromStorage() {
 }
 
 function initializeDummyData() {
+  const today = getCurrentDateString();
   tasks = [
-    new Task(null, '夜勤', '17:00', '23:59', 'normal'),
-    new Task(null, '夜勤', '00:00', '09:00', 'normal'), 
-    new Task(null, '勉強', '10:00', '11:00', 'high'),
-    new Task(null, 'ゲーム', '13:30', '14:15', 'urgent')
+    new Task(null, '夜勤', '17:00', '23:59', 'normal', today),
+    new Task(null, '夜勤', '00:00', '09:00', 'normal', today), 
+    new Task(null, '勉強', '10:00', '11:00', 'high', today),
+    new Task(null, 'ゲーム', '13:30', '14:15', 'urgent', today)
   ];
   saveToStorage();
+}
+
+// ===== 日付管理機能 =====
+function formatDateForDisplay(dateString) {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function changeDate(newDate) {
+  try {
+    currentDate = newDate;
+    renderTasks();
+    updateStats();
+    console.log('日付を変更しました:', currentDate);
+  } catch (error) {
+    console.error('日付変更エラー:', error);
+  }
+}
+
+function navigateDate(direction) {
+  try {
+    const date = new Date(currentDate);
+    date.setDate(date.getDate() + direction);
+    const newDateString = date.toISOString().split('T')[0];
+    changeDate(newDateString);
+  } catch (error) {
+    console.error('日付ナビゲーションエラー:', error);
+  }
+}
+
+function getCurrentTasksForDate() {
+  return tasks.filter(task => task.date === currentDate);
+}
+
+// 日付選択ダイアログを表示
+function showDatePicker() {
+  try {
+    const input = document.createElement('input');
+    input.type = 'date';
+    input.value = currentDate;
+    input.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10000;
+      padding: 16px;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      background: white;
+      box-shadow: var(--shadow-xl);
+      font-size: 16px;
+      font-family: inherit;
+    `;
+    
+    // 背景オーバーレイ
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    `;
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(input);
+    input.focus();
+    
+    // 日付変更時の処理
+    input.addEventListener('change', (e) => {
+      const newDate = e.target.value;
+      if (newDate && newDate !== currentDate) {
+        changeDate(newDate);
+        showNotification(`日付を${formatDateForDisplay(newDate)}に変更しました`, 'success');
+      }
+      cleanup();
+    });
+    
+    // クリーンアップ関数
+    const cleanup = () => {
+      if (overlay.parentNode) overlay.remove();
+      if (input.parentNode) input.remove();
+    };
+    
+    // オーバーレイクリックまたはEscキーでキャンセル
+    overlay.addEventListener('click', cleanup);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        cleanup();
+      }
+    });
+    
+    // 3秒後に自動閉鎖
+    setTimeout(() => {
+      if (input.parentNode) cleanup();
+    }, 10000);
+    
+  } catch (error) {
+    console.error('日付ピッカー表示エラー:', error);
+  }
 }
 
 // ===== タスク管理機能 =====
@@ -100,7 +216,7 @@ function addTask(title, startTime, endTime, priority = 'normal') {
       throw new Error('必要な項目が入力されていません');
     }
     
-    const newTask = new Task(null, title, startTime, endTime, priority);
+    const newTask = new Task(null, title, startTime, endTime, priority, currentDate);
     tasks.push(newTask);
     saveToStorage();
     renderTasks();
@@ -180,13 +296,18 @@ function renderTasks() {
     const existingCards = timeline.querySelectorAll('.task-card');
     existingCards.forEach(card => card.remove());
     
-    // 各タスクをレンダリング
-    tasks.forEach(task => {
+    // 現在の日付のタスクのみをフィルタ
+    const currentDateTasks = getCurrentTasksForDate();
+    
+    // フィルタを適用したタスクのみをレンダリング
+    const filteredTasks = currentDateTasks.filter(task => activeFilters[task.priority]);
+    
+    filteredTasks.forEach(task => {
       const taskCard = createTaskCard(task);
       timeline.appendChild(taskCard);
     });
     
-    console.log('タスクをレンダリングしました:', tasks.length + '件');
+    console.log(`${currentDate}のタスクをレンダリングしました: ${filteredTasks.length}件表示中`);
   } catch (error) {
     console.error('タスクレンダリングエラー:', error);
   }
@@ -657,15 +778,13 @@ function updateClock() {
   try {
     const now = new Date();
     
-    // 日付と時刻のフォーマット
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
+    // 現在時刻のフォーマット
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     
-    // メイン時計（ヘッダー中央）
-    const mainClockText = `${year}-${month}-${day} ${hours}:${minutes}`;
+    // メイン時計（表示中の日付と現在時刻）
+    const displayDate = formatDateForDisplay(currentDate);
+    const mainClockText = `${displayDate} ${hours}:${minutes}`;
     const mainClockElement = document.getElementById('main-clock');
     if (mainClockElement) {
       mainClockElement.textContent = mainClockText;
@@ -688,6 +807,7 @@ function updateNowLine() {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
+    const today = getCurrentDateString();
     
     // 現在時刻を分に変換（0:00からの経過分）
     const totalMinutes = hours * 60 + minutes;
@@ -698,14 +818,36 @@ function updateNowLine() {
     // 現在時刻ラインの位置を更新
     const nowLine = document.getElementById('now-line');
     if (nowLine) {
-      nowLine.style.top = topPosition + 'px';
+      // 今日のタスクを表示している場合のみ現在時刻ラインを表示
+      if (currentDate === today) {
+        nowLine.style.display = 'block';
+        nowLine.style.top = topPosition + 'px';
+      } else {
+        nowLine.style.display = 'none';
+      }
     }
     
-    // 現在時刻の時刻ラベルを強調表示
-    updateCurrentHourLabel(hours);
+    // 現在時刻の時刻ラベルを強調表示（今日のみ）
+    if (currentDate === today) {
+      updateCurrentHourLabel(hours);
+    } else {
+      // 他の日の場合は強調表示をクリア
+      clearCurrentHourLabel();
+    }
     
   } catch (error) {
     console.error('現在時刻ライン更新エラー:', error);
+  }
+}
+
+function clearCurrentHourLabel() {
+  try {
+    const allTimeLabels = document.querySelectorAll('.time-label');
+    allTimeLabels.forEach(label => {
+      label.classList.remove('current-hour');
+    });
+  } catch (error) {
+    console.error('時刻ラベルクリアエラー:', error);
   }
 }
 
@@ -789,26 +931,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// ===== データエクスポート/インポート機能 =====
-function exportData() {
-  try {
-    const dataStr = JSON.stringify(tasks, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `nowtask_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-    showNotification('データをエクスポートしました', 'success');
-  } catch (error) {
-    console.error('データエクスポートエラー:', error);
-    alert('データのエクスポートに失敗しました');
-  }
-}
-
 // ===== サイドバー機能 =====
 
 // 詳細タスク追加
@@ -869,14 +991,15 @@ function getOneHourLater(timeStr) {
 // 完了済みタスクを削除
 function clearCompleted() {
   try {
-    const completedTasks = tasks.filter(task => task.completed);
+    const currentDateTasks = getCurrentTasksForDate();
+    const completedTasks = currentDateTasks.filter(task => task.completed);
     if (completedTasks.length === 0) {
       showNotification('完了済みのタスクはありません', 'info');
       return;
     }
     
     if (confirm(`${completedTasks.length}件の完了済みタスクを削除しますか？`)) {
-      tasks = tasks.filter(task => !task.completed);
+      tasks = tasks.filter(task => !(task.date === currentDate && task.completed));
       saveToStorage();
       renderTasks();
       showNotification(`${completedTasks.length}件のタスクを削除しました`, 'success');
@@ -908,9 +1031,10 @@ function toggleFilter(priority) {
 // タスク統計の更新
 function updateStats() {
   try {
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(task => task.completed).length;
-    const totalMinutes = tasks.reduce((sum, task) => sum + task.getDurationMinutes(), 0);
+    const currentDateTasks = getCurrentTasksForDate();
+    const totalTasks = currentDateTasks.length;
+    const completedTasks = currentDateTasks.filter(task => task.completed).length;
+    const totalMinutes = currentDateTasks.reduce((sum, task) => sum + task.getDurationMinutes(), 0);
     const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
     
     // DOM要素の更新

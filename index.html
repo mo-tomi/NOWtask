@@ -20,7 +20,11 @@
       <h1 class="logo">NowTask</h1>
     </div>
     <div class="header-center">
-      <div id="main-clock" class="main-clock">2025-07-01 14:08</div>
+      <div class="date-navigator">
+        <button class="date-nav-btn" onclick="navigateDate(-1)" aria-label="前日">‹</button>
+        <div id="main-clock" class="main-clock" onclick="showDatePicker()" title="クリックして日付を変更">2025-01-01 00:00</div>
+        <button class="date-nav-btn" onclick="navigateDate(1)" aria-label="翌日">›</button>
+      </div>
     </div>
     <div class="header-right">
       <div id="header-clock" class="header-clock">14:08</div>
@@ -132,10 +136,7 @@
               <span class="btn-icon">🗑️</span>
               <span class="btn-text">完了済み削除</span>
             </button>
-            <button class="action-btn secondary" onclick="exportData()">
-              <span class="btn-icon">💾</span>
-              <span class="btn-text">データ保存</span>
-            </button>
+
           </div>
         </section>
         
