@@ -256,15 +256,26 @@ function createSingleTaskCard(task, parentId) {
     enableDragAndResize(card);
 
     /* ❺ マルチセレクト機能の追加 */
-    card.addEventListener('click', (e) => handleTaskCardClick(e, task.id));
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleTaskCardClick(e, task.id);
+    });
 
-    /* ❻ 基本的なARIA属性 */
+    /* ❻ 右クリックメニューの設定 */
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showContextMenu(e.clientX, e.clientY, task.id);
+    });
+
+    /* ❼ 基本的なARIA属性 */
     setTaskCardARIA(card, task);
 
-    /* ❼ 右クリックメニューの設定 - DOM追加後に実行 */
-    setTimeout(() => {
-      setupContextMenu(card, task);
-    }, 0);
+    /* ❽ 選択可能にする */
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-selected', 'false');
 
     /* ❽ 作成アニメーションを適用 */
     card.classList.add('creating');
@@ -316,34 +327,35 @@ function getComputedTop(card) {
 }
 
 /**
- * ドラッグ&リサイズ機能の有効化
+ * ドラッグ&リサイズ機能の有効化（クリック処理も統合）
  * @param {HTMLElement} card - タスクカード要素
  */
 export function enableDragAndResize(card) {
   let isDragging = false;
   let isResizing = false;
+  let startX = 0;
   let startY = 0;
   let startTop = 0;
   let startHeight = 0;
+  const DRAG_THRESHOLD = 5;
 
-  // ドラッグ開始ハンドラー
   function onDown(e) {
-    e.preventDefault();
+    // アクションボタンが押された場合は何もしない
+    if (e.target.closest('.task-action-btn')) {
+      return;
+    }
 
-    const rect = card.getBoundingClientRect();
+    startX = e.clientX || e.touches[0].clientX;
     startY = e.clientY || e.touches[0].clientY;
-    startTop = parseInt(card.dataset.currentTop || card.style.top || getComputedTop(card)) || 0;
+    startTop = parseInt(card.style.top) || 0;
     startHeight = parseInt(card.style.height) || 60;
+    card.dataset.currentTop = startTop;
 
-    // リサイズハンドルがクリックされた場合
+    isDragging = false;
+    isResizing = false;
+
     if (e.target.classList.contains('task-resize-handle')) {
-      isResizing = true;
-      card.style.cursor = 'ns-resize';
-    } else {
-      isDragging = true;
-      card.style.cursor = 'grabbing';
-      card.style.transform = 'scale(1.02)';
-      card.style.zIndex = '200';
+      // リサイズ操作の準備
     }
 
     document.addEventListener('mousemove', onMove);
@@ -352,76 +364,87 @@ export function enableDragAndResize(card) {
     document.addEventListener('touchend', onUp);
   }
 
-  // ドラッグ中の処理
   function onMove(e) {
-    if (!isDragging && !isResizing) {return;}
-
-    e.preventDefault();
+    const currentX = e.clientX || e.touches[0].clientX;
     const currentY = e.clientY || e.touches[0].clientY;
-    const deltaY = currentY - startY;
+
+    if (!isDragging && (Math.abs(currentX - startX) > DRAG_THRESHOLD || Math.abs(currentY - startY) > DRAG_THRESHOLD)) {
+      isDragging = true;
+      e.preventDefault(); // ドラッグが開始されたらテキスト選択などを防ぐ
+
+      if (e.target.classList.contains('task-resize-handle')) {
+        isResizing = true;
+        document.body.style.cursor = 'ns-resize';
+        card.classList.add('resizing');
+      } else {
+        document.body.style.cursor = 'grabbing';
+        card.classList.add('dragging');
+      }
+    }
 
     if (isDragging) {
-      // 位置変更（15分単位にスナップ）- transform最適化
-      const newTop = snap15(startTop + deltaY);
-      const clampedTop = Math.max(0, Math.min(1380, newTop)); // 0-23時の範囲内
-      card.style.transform = `translateY(${clampedTop}px)`;
-      card.dataset.currentTop = clampedTop; // 後で参照用
+      e.preventDefault();
+      const deltaY = currentY - startY;
 
-    } else if (isResizing) {
-      // サイズ変更（15分単位にスナップ）
-      const newHeight = snap15(startHeight + deltaY);
-      const minHeight = 15; // 最小15分
-      const maxHeight = 1440 - startTop; // 現在位置から24時まで
-      const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-      card.style.height = clampedHeight + 'px';
+      if (isResizing) {
+        // サイズ変更
+        const newHeight = snap15(startHeight + deltaY);
+        const minHeight = 15;
+        const maxHeight = 1440 - startTop;
+        card.style.height = `${Math.max(minHeight, Math.min(maxHeight, newHeight))}px`;
+      } else {
+        // 位置変更
+        const newTop = snap15(startTop + deltaY);
+        const clampedTop = Math.max(0, Math.min(1440 - startHeight, newTop));
+        card.style.top = `${clampedTop}px`;
+        card.dataset.currentTop = clampedTop;
+      }
     }
   }
 
-  // ドラッグ終了の処理
-  function onUp() {
-    if (isDragging || isResizing) {
-      const taskId = card.dataset.taskId;
-      const newTop = parseInt(card.dataset.currentTop || card.style.top);
-      const newHeight = parseInt(card.style.height);
-
-      // 新しい時刻を計算
-      const newStartTime = minutesToTimeString(newTop);
-      const newEndTime = minutesToTimeString(newTop + newHeight);
-
-      // タスクデータを更新
-      updateTaskFromCard(taskId, {
-        startTime: newStartTime,
-        endTime: newEndTime
-      });
-
-      // 50ms後にレーン再計算（パフォーマンス考慮）
-      setTimeout(() => {
-        recalculateAllLanes();
-        // 画面を再描画（仮想スクロール対応）
-        if (typeof window.renderTasks === 'function') {
-          window.renderTasks();
-        }
-      }, 50);
-
-      // 視覚的フィードバックをリセット
-      card.style.cursor = '';
-      card.style.transform = '';
-      card.style.zIndex = '100';
-    }
-
-    isDragging = false;
-    isResizing = false;
-
-    // イベントリスナーを削除
+  function onUp(e) {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     document.removeEventListener('touchmove', onMove);
     document.removeEventListener('touchend', onUp);
+
+    document.body.style.cursor = '';
+    card.classList.remove('dragging', 'resizing');
+
+    if (isDragging) {
+      // ドラッグ・リサイズ完了処理
+      const taskId = card.dataset.taskId;
+      const newTop = parseInt(card.style.top);
+      const newHeight = parseInt(card.style.height);
+      const newStartTime = minutesToTimeString(newTop);
+      const newEndTime = minutesToTimeString(newTop + newHeight);
+      
+      updateTaskFromCard(taskId, { startTime: newStartTime, endTime: newEndTime });
+      showNotification(`時間変更: ${newStartTime} - ${newEndTime}`, 'success', 2000);
+      setTimeout(() => {
+        recalculateAllLanes();
+        if (window.renderTasks) window.renderTasks();
+      }, 50);
+    } else {
+      // クリック処理
+      const taskId = card.dataset.taskId;
+      if (e.shiftKey && window.lastSelectedTaskId) {
+        selectTaskRange(window.lastSelectedTaskId, taskId);
+      } else if (e.ctrlKey || e.metaKey) {
+        window.toggleTaskSelection(taskId);
+      } else {
+        window.clearAllSelections();
+        window.toggleTaskSelection(taskId);
+      }
+      window.lastSelectedTaskId = taskId;
+    }
+
+    isDragging = false;
+    isResizing = false;
   }
 
-  // イベントリスナーの登録
   card.addEventListener('mousedown', onDown);
-  card.addEventListener('touchstart', onDown, { passive: false });
+  card.addEventListener('touchstart', onDown, { passive: true });
 }
 
 /**
@@ -686,41 +709,23 @@ function setupContextMenu(card, task) {
  * @param {string} taskId - タスクID
  */
 function showContextMenu(x, y, taskId) {
-  console.log('📋 コンテキストメニュー表示試行:', { x, y, taskId });
-  
   const contextMenu = document.getElementById('context-menu');
-  if (!contextMenu) {
-    console.error('❌ context-menu要素が見つかりません');
-    return;
-  }
+  if (!contextMenu) return;
 
-  console.log('✅ context-menu要素発見:', contextMenu);
-
-  // 既存のメニューを非表示
   hideContextMenu();
 
-  // 画面境界での調整
-  const menuWidth = 180;
-  const menuHeight = 160;
-  const adjustedX = Math.min(x, window.innerWidth - menuWidth - 10);
-  const adjustedY = Math.min(y, window.innerHeight - menuHeight - 10);
+  const { innerWidth, innerHeight } = window;
+  const menuRect = contextMenu.getBoundingClientRect();
+  const adjustedX = Math.min(x, innerWidth - menuRect.width - 10);
+  const adjustedY = Math.min(y, innerHeight - menuRect.height - 10);
 
-  // メニュー位置とデータを設定
-  contextMenu.style.left = adjustedX + 'px';
-  contextMenu.style.top = adjustedY + 'px';
+  contextMenu.style.left = `${adjustedX}px`;
+  contextMenu.style.top = `${adjustedY}px`;
   contextMenu.dataset.taskId = taskId;
   contextMenu.style.display = 'block';
-
-  console.log('📍 メニュー位置設定:', { left: adjustedX, top: adjustedY, display: contextMenu.style.display });
-
-  // メニュー項目にイベントリスナーを設定
-  setupContextMenuActions(contextMenu, taskId);
-
-  // 外部クリックで閉じるイベント
-  setTimeout(() => {
-    document.addEventListener('click', hideContextMenu);
-    document.addEventListener('keydown', handleContextMenuKeydown);
-  }, 0);
+  contextMenu.setAttribute('aria-hidden', 'false');
+  
+  setTimeout(() => contextMenu.focus(), 0); // For accessibility
 }
 
 /**
@@ -728,46 +733,47 @@ function showContextMenu(x, y, taskId) {
  */
 function hideContextMenu() {
   const contextMenu = document.getElementById('context-menu');
-  if (contextMenu) {
+  if (contextMenu && contextMenu.style.display !== 'none') {
     contextMenu.style.display = 'none';
-    contextMenu.dataset.taskId = '';
+    contextMenu.removeAttribute('data-task-id');
+    contextMenu.setAttribute('aria-hidden', 'true');
   }
-
-  // イベントリスナーを削除
-  document.removeEventListener('click', hideContextMenu);
-  document.removeEventListener('keydown', handleContextMenuKeydown);
 }
 
 /**
- * コンテキストメニューのアクション設定
- * @param {HTMLElement} menu - メニュー要素
- * @param {string} taskId - タスクID
+ * コンテキストメニューのアクション設定 (初期化時に一度だけ実行)
  */
-function setupContextMenuActions(menu, taskId) {
-  const items = menu.querySelectorAll('.context-menu-item[data-action]');
-  console.log('🔧 メニューアクション設定:', items.length, 'アイテム見つかりました');
-  
-  // 既存のイベントリスナーを削除
-  const newClonedItems = [];
-  items.forEach(item => {
-    console.log('📝 アイテム:', item.dataset.action, item.textContent.trim());
-    const clonedItem = item.cloneNode(true);
-    item.parentNode.replaceChild(clonedItem, item);
-    newClonedItems.push(clonedItem);
-  });
+export function initializeContextMenu() {
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) return;
 
-  // 新しいイベントリスナーを追加
-  newClonedItems.forEach(item => {
-    item.addEventListener('click', (e) => {
+  contextMenu.setAttribute('tabindex', '-1');
+
+  contextMenu.addEventListener('click', (e) => {
+    const item = e.target.closest('.context-menu-item[data-action]');
+    if (item) {
       e.stopPropagation();
       const action = item.dataset.action;
-      console.log('🎯 メニューアクション実行:', action, taskId);
-      executeContextAction(action, taskId);
+      const taskId = contextMenu.dataset.taskId;
+      if (action && taskId) {
+        executeContextAction(action, taskId);
+      }
       hideContextMenu();
-    });
+    }
   });
-  
-  console.log('✅ メニューアクション設定完了:', newClonedItems.length, 'アイテム');
+
+  // Close on outside click or Escape key
+  document.addEventListener('click', (e) => {
+    if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
+
+  contextMenu.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      hideContextMenu();
+    }
+  });
 }
 
 /**
@@ -788,6 +794,10 @@ function executeContextAction(action, taskId) {
         console.log('🕒 時間編集開始');
         editTaskTime(taskId);
         break;
+      case 'edit-date':
+        console.log('📅 日付編集開始');
+        editTaskDate(taskId);
+        break;
       case 'duplicate':
         console.log('📋 タスク複製開始');
         duplicateTask(taskId);
@@ -804,6 +814,84 @@ function executeContextAction(action, taskId) {
   } catch (error) {
     console.error('❌ コンテキストアクション実行エラー:', error);
     showNotification('操作に失敗しました', 'error');
+  }
+}
+
+/**
+ * タスクの日付変更
+ * @param {string} taskId - 変更するタスクID
+ */
+export function editTaskDate(taskId) {
+  try {
+    const appState = window.AppState;
+    const task = appState.tasks.find(t => t.id === taskId);
+    if (!task) {
+      console.warn(`タスクが見つかりません: ${taskId}`);
+      return;
+    }
+
+    // 現在の日付をデフォルト値として設定
+    const currentDate = task.date;
+    
+    showInlineInput(
+      '📅 新しい日付を入力してください',
+      'YYYY-MM-DD形式で入力',
+      currentDate,
+      (newDate) => {
+        if (!newDate || newDate === currentDate) {
+          return;
+        }
+
+        // 日付の形式をチェック
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(newDate)) {
+          showNotification('日付形式が正しくありません（YYYY-MM-DD）', 'error');
+          return;
+        }
+
+        // 日付の有効性をチェック
+        const dateObj = new Date(newDate);
+        if (isNaN(dateObj.getTime())) {
+          showNotification('有効な日付を入力してください', 'error');
+          return;
+        }
+
+        // タスクの日付を更新
+        const taskIndex = appState.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+          const updatedTask = appState.tasks[taskIndex].update({ date: newDate });
+          appState.tasks[taskIndex] = updatedTask;
+
+          // データを保存
+          saveToStorage();
+          recalculateAllLanes();
+
+          // 元の日付パネルからタスクカードを削除
+          const oldCards = document.querySelectorAll(`[data-task-id="${taskId}"]`);
+          oldCards.forEach(card => card.remove());
+
+          // 新しい日付パネルにタスクを追加（存在する場合）
+          const newDatePanel = document.querySelector(`[data-date="${newDate}"]`);
+          if (newDatePanel) {
+            const tasksContainer = newDatePanel.querySelector('.tasks-container');
+            if (tasksContainer) {
+              const newTaskCard = createTaskCard(updatedTask, newDatePanel);
+              tasksContainer.appendChild(newTaskCard);
+            }
+          }
+
+          // 成功通知
+          showNotification(`📅 日付を${newDate}に変更しました`, 'success');
+
+          // スクリーンリーダー通知
+          announceToScreenReader(`タスク「${task.title}」の日付を${newDate}に変更しました`);
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error('タスク日付変更エラー:', error);
+    showNotification('日付の変更に失敗しました', 'error');
   }
 }
 
@@ -941,16 +1029,6 @@ function deleteTaskWithAnimation(taskId) {
 }
 
 /**
- * コンテキストメニューのキーボード操作
- * @param {KeyboardEvent} e - キーボードイベント
- */
-function handleContextMenuKeydown(e) {
-  if (e.key === 'Escape') {
-    hideContextMenu();
-  }
-}
-
-/**
  * インライン入力モーダルの表示
  * @param {string} title - モーダルタイトル
  * @param {string} placeholder - 入力フィールドのプレースホルダー
@@ -980,6 +1058,17 @@ function showInlineInput(title, placeholder, defaultValue = '', onConfirm) {
 
   // コールバック関数を保存
   window._inlineInputCallback = onConfirm;
+
+  // ボタンイベントを設定
+  const confirmBtn = document.getElementById('inline-input-confirm');
+  const cancelBtn = document.getElementById('inline-input-cancel');
+
+  if (confirmBtn) {
+    confirmBtn.onclick = confirmInlineInput;
+  }
+  if (cancelBtn) {
+    cancelBtn.onclick = hideInlineInput;
+  }
 
   // Enterキーで確定
   inputField.addEventListener('keydown', handleInlineInputKeydown);
@@ -1125,36 +1214,6 @@ export const TaskCardTest = {
     };
   }
 };
-
-/**
- * タスクカードクリック時のマルチセレクト処理
- * @param {Event} e - クリックイベント
- * @param {string} taskId - タスクID
- */
-function handleTaskCardClick(e, taskId) {
-  // タスクタイトルやボタンクリックの場合はマルチセレクト処理をスキップ
-  if (e.target.closest('.task-title') || 
-      e.target.closest('.task-action-btn') || 
-      e.target.closest('.task-time') ||
-      e.target.closest('.task-resize-handle')) {
-    return;
-  }
-
-  // マルチセレクト処理
-  if (e.shiftKey && window.lastSelectedTaskId) {
-    // Shift+クリック: 範囲選択
-    selectTaskRange(window.lastSelectedTaskId, taskId);
-  } else if (e.ctrlKey || e.metaKey) {
-    // Ctrl+クリック: 個別選択トグル
-    window.toggleTaskSelection(taskId);
-  } else {
-    // 通常クリック: 単一選択
-    window.clearAllSelections();
-    window.toggleTaskSelection(taskId);
-  }
-
-  window.lastSelectedTaskId = taskId;
-}
 
 /**
  * 範囲選択処理

@@ -2600,6 +2600,35 @@ select:focus-visible,
 
 /* ===== タスクカード アニメーション ===== */
 
+/* ドラッグ&リサイズ状態のスタイル */
+.task-card.dragging {
+  cursor: grabbing !important;
+  transform: scale(1.02) !important;
+  z-index: 200 !important;
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  border-color: var(--primary) !important;
+}
+
+.task-card.resizing {
+  cursor: ns-resize !important;
+  border-color: var(--accent) !important;
+  box-shadow: 
+    0 0 0 2px rgba(255, 76, 76, 0.3),
+    var(--shadow-lg) !important;
+}
+
+.task-card.selected {
+  border: 2px solid var(--primary) !important;
+  box-shadow: 
+    0 0 0 2px rgba(46, 139, 255, 0.2),
+    var(--shadow-lg) !important;
+  transform: scale(1.01) !important;
+  z-index: 150 !important;
+}
+
 /* タスク作成アニメーション */
 @keyframes task-create {
   0% {

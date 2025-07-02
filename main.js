@@ -35,9 +35,11 @@ import {
   createTaskCard,
   editTaskTitle,
   editTaskTime,
+  editTaskDate,
   TaskCardTest,
   enableDragAndResize,
-  showNotification
+  showNotification,
+  initializeContextMenu
 } from './ui/taskCard.js';
 
 import {
