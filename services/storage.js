@@ -48,7 +48,7 @@ export class Task {
         // 条件2: 22:00以降開始で翌日08:00以前終了（睡眠パターン）
         const isNightShift = startMin >= 17 * 60 && endMin <= 12 * 60;
         const isSleepPattern = startMin >= 22 * 60 && endMin <= 8 * 60;
-        
+
         if (!isNightShift && !isSleepPattern) {
           throw new Error('終了時刻は開始時刻より後である必要があります（日付跨ぎの場合を除く）');
         }
@@ -456,3 +456,15 @@ export const StorageTest = {
     };
   }
 };
+
+/**
+ * ストレージをクリア（テスト用）
+ */
+export function clearStorage() {
+  try {
+    localStorage.removeItem('nowtask-data');
+    console.log('��️ ストレージをクリアしました');
+  } catch (error) {
+    console.error('ストレージクリアエラー:', error);
+  }
+}

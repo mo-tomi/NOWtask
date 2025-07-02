@@ -55,14 +55,14 @@ export function showNotification(message, type = 'info', duration = 4000) {
     // 新しい通知要素を作成
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
-    
+
     // アイコンとメッセージを設定
     const icons = {
       success: '✓',
       error: '⚠',
       info: 'ℹ'
     };
-    
+
     notification.innerHTML = `
       <span class="notification-icon">${icons[type] || icons.info}</span>
       <span class="notification-message">${escapeHtml(message)}</span>
@@ -255,8 +255,32 @@ function createSingleTaskCard(task, parentId) {
     /* ❹ ドラッグ & リサイズ機能の有効化 */
     enableDragAndResize(card);
 
+    /* ❺ アクションボタンのイベント処理を直接設定 */
+    const completeBtn = card.querySelector('.task-action-btn:not(.delete-btn)');
+    const deleteBtn = card.querySelector('.task-action-btn.delete-btn');
+
+    if (completeBtn) {
+      completeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleTaskCompletion(effectiveId);
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        confirmDeleteTask(effectiveId);
+      });
+    }
+
     /* ❺ マルチセレクト機能の追加 */
     card.addEventListener('click', (e) => {
+      // アクションボタンのクリックは無視
+      if (e.target.closest('.task-action-btn')) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       handleTaskCardClick(e, task.id);
@@ -279,7 +303,7 @@ function createSingleTaskCard(task, parentId) {
 
     /* ❽ 作成アニメーションを適用 */
     card.classList.add('creating');
-    
+
     // アニメーション終了後にクラスを削除
     card.addEventListener('animationend', function onAnimationEnd(e) {
       if (e.animationName === 'task-create') {
@@ -341,7 +365,7 @@ export function enableDragAndResize(card) {
 
   function onDown(e) {
     // アクションボタンが押された場合は何もしない
-    if (e.target.closest('.task-action-btn')) {
+    if (e.target.closest('.task-action-btn') || e.target.closest('.task-title') || e.target.closest('.task-time')) {
       return;
     }
 
@@ -418,15 +442,15 @@ export function enableDragAndResize(card) {
       const newHeight = parseInt(card.style.height);
       const newStartTime = minutesToTimeString(newTop);
       const newEndTime = minutesToTimeString(newTop + newHeight);
-      
+
       updateTaskFromCard(taskId, { startTime: newStartTime, endTime: newEndTime });
       showNotification(`時間変更: ${newStartTime} - ${newEndTime}`, 'success', 2000);
       setTimeout(() => {
         recalculateAllLanes();
-        if (window.renderTasks) window.renderTasks();
+        if (window.renderTasks) {window.renderTasks();}
       }, 50);
-    } else {
-      // クリック処理
+    } else if (!e.target.closest('.task-action-btn') && !e.target.closest('.task-title') && !e.target.closest('.task-time')) {
+      // クリック処理（アクションボタン以外の場合のみ）
       const taskId = card.dataset.taskId;
       if (e.shiftKey && window.lastSelectedTaskId) {
         selectTaskRange(window.lastSelectedTaskId, taskId);
@@ -514,17 +538,17 @@ export function editTaskTitle(taskId) {
         if (newTitle && newTitle.trim() !== task.title) {
           // タスクタイトルを更新
           const updateResult = window.taskManager.updateTask(taskId, { title: newTitle.trim() });
-          
+
           if (updateResult.success) {
             // DOM要素のタイトルを更新
             const titleElements = document.querySelectorAll(`[data-task-id="${taskId}"] .task-title, [data-parent-id="${taskId}"] .task-title`);
             titleElements.forEach(titleEl => {
               titleEl.textContent = newTitle.trim();
             });
-            
+
             showNotification('タスク名を変更しました', 'success');
             announceToScreenReader(`タスク名を「${newTitle.trim()}」に変更しました`);
-            
+
           } else {
             showNotification('タスク名の変更に失敗しました', 'error');
           }
@@ -698,7 +722,7 @@ function setupContextMenu(card, task) {
 
   // 通常の左クリックでメニューを非表示
   card.addEventListener('click', hideContextMenu);
-  
+
   console.log('📋 コンテキストメニュー設定完了:', task.id, task.title);
 }
 
@@ -710,7 +734,7 @@ function setupContextMenu(card, task) {
  */
 function showContextMenu(x, y, taskId) {
   const contextMenu = document.getElementById('context-menu');
-  if (!contextMenu) return;
+  if (!contextMenu) {return;}
 
   hideContextMenu();
 
@@ -724,7 +748,7 @@ function showContextMenu(x, y, taskId) {
   contextMenu.dataset.taskId = taskId;
   contextMenu.style.display = 'block';
   contextMenu.setAttribute('aria-hidden', 'false');
-  
+
   setTimeout(() => contextMenu.focus(), 0); // For accessibility
 }
 
@@ -745,7 +769,7 @@ function hideContextMenu() {
  */
 export function initializeContextMenu() {
   const contextMenu = document.getElementById('context-menu');
-  if (!contextMenu) return;
+  if (!contextMenu) {return;}
 
   contextMenu.setAttribute('tabindex', '-1');
 
@@ -784,7 +808,7 @@ export function initializeContextMenu() {
 function executeContextAction(action, taskId) {
   try {
     console.log('⚡ アクション実行開始:', action, taskId);
-    
+
     switch (action) {
       case 'edit-title':
         console.log('✏️ タイトル編集開始');
@@ -809,7 +833,7 @@ function executeContextAction(action, taskId) {
       default:
         console.warn('❓ 未知のアクション:', action);
     }
-    
+
     console.log('✅ アクション実行完了:', action);
   } catch (error) {
     console.error('❌ コンテキストアクション実行エラー:', error);
@@ -832,7 +856,7 @@ export function editTaskDate(taskId) {
 
     // 現在の日付をデフォルト値として設定
     const currentDate = task.date;
-    
+
     showInlineInput(
       '📅 新しい日付を入力してください',
       'YYYY-MM-DD形式で入力',
@@ -908,7 +932,7 @@ function duplicateTask(taskId) {
     // 新しいタスクを作成（時刻を少しずらす）
     const startMinutes = timeStringToMinutes(originalTask.startTime) + 60; // 1時間後
     const endMinutes = timeStringToMinutes(originalTask.endTime) + 60;
-    
+
     const newStartTime = minutesToTimeString(Math.min(startMinutes, 1440 - 60));
     const newEndTime = minutesToTimeString(Math.min(endMinutes, 1440));
 
@@ -978,7 +1002,7 @@ function deleteTaskWithAnimation(taskId) {
   try {
     // DOM要素を取得
     const cards = document.querySelectorAll(`[data-task-id="${taskId}"], [data-parent-id="${taskId}"]`);
-    
+
     if (cards.length === 0) {
       console.warn(`削除対象のカードが見つかりません: ${taskId}`);
       return;
@@ -995,7 +1019,7 @@ function deleteTaskWithAnimation(taskId) {
       if (e.animationName === 'task-delete') {
         // データから削除
         const deleteResult = window.taskManager.deleteTask(taskId);
-        
+
         if (deleteResult.success) {
           // すべてのカードをDOMから削除
           cards.forEach(card => {
@@ -1003,13 +1027,13 @@ function deleteTaskWithAnimation(taskId) {
               card.remove();
             }
           });
-          
+
           // 成功通知
           showNotification('タスクを削除しました', 'success');
-          
+
           // スクリーンリーダー通知
           announceToScreenReader(`タスク「${deleteResult.task.title}」を削除しました`);
-          
+
         } else {
           // 失敗時はアニメーションを戻す
           cards.forEach(card => {
@@ -1017,7 +1041,7 @@ function deleteTaskWithAnimation(taskId) {
           });
           showNotification('タスクの削除に失敗しました', 'error');
         }
-        
+
         firstCard.removeEventListener('animationend', onDeleteAnimationEnd);
       }
     });
@@ -1046,7 +1070,7 @@ function showInlineInput(title, placeholder, defaultValue = '', onConfirm) {
   inputField.placeholder = placeholder;
   inputField.value = defaultValue;
   overlay.style.display = 'flex';
-  
+
   // アクセシビリティ属性を更新（フォーカス可能にする）
   overlay.setAttribute('aria-hidden', 'false');
 
@@ -1233,7 +1257,7 @@ function selectTaskRange(startTaskId, endTaskId) {
   const startIndex = taskCards.findIndex(card => card.dataset.taskId === startTaskId);
   const endIndex = taskCards.findIndex(card => card.dataset.taskId === endTaskId);
 
-  if (startIndex === -1 || endIndex === -1) return;
+  if (startIndex === -1 || endIndex === -1) {return;}
 
   const minIndex = Math.min(startIndex, endIndex);
   const maxIndex = Math.max(startIndex, endIndex);
@@ -1247,4 +1271,18 @@ function selectTaskRange(startTaskId, endTaskId) {
 
   window.updateTaskSelectionUI();
   window.updateSelectionCounter();
+}
+
+// ===== 以下は一時的なスタブ =====
+// TODO: 本実装に置き換える
+export function toggleTaskCompletion() {
+  console.warn('toggleTaskCompletion stub called');
+}
+
+export function confirmDeleteTask() {
+  console.warn('confirmDeleteTask stub called');
+}
+
+export function handleTaskCardClick() {
+  console.warn('handleTaskCardClick stub called');
 }

@@ -40,7 +40,13 @@ export default [
         afterEach: 'readonly',
         afterAll: 'readonly',
         // Node.js
-        process: 'readonly'
+        process: 'readonly',
+        // Browser APIs (追加)
+        alert: 'readonly',
+        prompt: 'readonly',
+        Option: 'readonly',
+        EventTarget: 'readonly',
+        MutationObserver: 'readonly',
       }
     },
     rules: {

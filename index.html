@@ -7,30 +7,61 @@
   <meta name="keywords" content="タスク管理,スケジュール,タイムライン,TODO,時間管理">
   <meta name="author" content="TOMI">
   <title>NowTask - Personal Task Manager</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/style.scss" type="text/scss">
   <link rel="stylesheet" href="style.css">
   <!-- プリロード最適化 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- PWA & SEO -->
+  <meta name="theme-color" content="#3b82f6">
+  <meta name="color-scheme" content="light dark">
+  
+  <!-- OGP -->
+  <meta property="og:title" content="NowTask - Personal Task Manager">
+  <meta property="og:description" content="1日の予定を縦タイムラインで可視化するパーソナルタスクマネージャー">
+  <meta property="og:type" content="website">
 </head>
 <body>
-  <!-- ヘッダー -->
-  <header class="header">
+  <!-- ヘッダー - Premium Design -->
+  <header class="header glass-header">
     <div class="header-left">
-      <h1 class="logo">NowTask</h1>
+      <a href="/" class="logo" aria-label="NowTask ホーム">
+        <div class="logo-icon">⚡</div>
+        <span class="logo-text">NowTask</span>
+      </a>
     </div>
     <div class="header-center">
       <div class="date-navigator">
-        <button class="date-nav-btn" onclick="navigateDate(-1)" aria-label="前日">‹</button>
-        <div id="main-clock" class="main-clock" onclick="showDatePicker()" title="クリックして日付を変更">2025-01-01 00:00</div>
-        <button class="date-nav-btn" onclick="navigateDate(1)" aria-label="翌日">›</button>
-        <button id="today-btn" class="header-btn today-btn" 
-                data-tooltip="今日に移動 (T)" data-tooltip-pos="bottom"
-                title="今日の日付に移動します">今日</button>
+        <button class="date-nav-btn" onclick="navigateDate(-1)" aria-label="前日" title="前日へ">
+          <span aria-hidden="true">‹</span>
+        </button>
+        <div class="current-time">
+          <div id="main-clock" class="time-display" onclick="showDatePicker()" title="クリックして日付を変更">
+            2025-01-01 00:00
+          </div>
+        </div>
+        <button class="date-nav-btn" onclick="navigateDate(1)" aria-label="翌日" title="翌日へ">
+          <span aria-hidden="true">›</span>
+        </button>
+        <button id="today-btn" class="today-btn" 
+                data-tooltip="今日に移動" data-tooltip-pos="bottom"
+                title="今日の日付に移動します">
+          <span class="today-icon">📅</span>
+          <span class="today-text">今日</span>
+        </button>
       </div>
     </div>
     <div class="header-right">
-      <div id="header-clock" class="header-clock">14:08</div>
+      <button class="theme-toggle" onclick="toggleDarkMode()" 
+              aria-label="ダークモード切り替え" 
+              title="テーマを切り替え">
+        <span class="icon theme-icon">🌙</span>
+      </button>
+      <div class="notifications-btn" title="通知設定">
+        <span class="icon">🔔</span>
+      </div>
     </div>
   </header>
 
@@ -56,43 +87,70 @@
     </button>
   </section>
 
-  <!-- メインコンテンツ -->
-  <main class="main-content">
-    <!-- タイムラインコンテナ（仮想スクロール用） -->
-    <div class="timeline-container">
-      <!-- 日付パネルはJavaScriptで動的に生成されます -->
-    </div>
-
-    <!-- サイドバー -->
-    <aside class="sidebar" role="complementary" aria-label="サイドバー">
+  <!-- メインコンテンツ - Premium Layout -->
+  <div class="main-container">
+    <!-- サイドバー - Premium Design -->
+    <aside class="sidebar glass-panel" role="complementary" aria-label="サイドバー">
       <div class="sidebar-content">
-        <h2 class="sidebar-title">タスク管理</h2>
+                <!-- クイック追加セクション -->
+        <section class="sidebar-section quick-add-section">
+          <h3 class="section-title">
+            <span class="section-icon">⚡</span>
+            クイック追加
+          </h3>
+          <div class="add-task-form">
+            <div class="form-group">
+              <label for="quick-task-input">タスク名</label>
+              <input type="text" id="quick-task-input" placeholder="例：会議準備 10:00-11:00" maxlength="100">
+            </div>
+            <div class="time-inputs">
+              <div class="form-group">
+                <label for="start-time-input">開始</label>
+                <input type="time" id="start-time-input">
+              </div>
+              <div class="form-group">
+                <label for="end-time-input">終了</label>
+                <input type="time" id="end-time-input">
+              </div>
+            </div>
+            <button class="add-task-btn" onclick="addQuickTask()">
+              <span class="btn-icon">➕</span>
+              <span class="btn-text">追加</span>
+            </button>
+          </div>
+        </section>
         
-        <!-- タスク統計 -->
-        <section class="sidebar-section">
-          <h3 class="sidebar-section-title">本日の統計</h3>
-          <div class="task-stats">
-            <div class="stat-item">
-              <span class="stat-label">総タスク数</span>
+        <!-- 統計セクション -->
+        <section class="sidebar-section statistics-section">
+          <h3 class="section-title">
+            <span class="section-icon">📊</span>
+            今日の統計
+          </h3>
+          <div class="stats-grid">
+            <div class="stat-card">
               <span class="stat-value" id="total-tasks">0</span>
+              <span class="stat-label">総タスク</span>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">完了済み</span>
+            <div class="stat-card">
               <span class="stat-value" id="completed-tasks">0</span>
+              <span class="stat-label">完了</span>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">予定時間</span>
+            <div class="stat-card">
               <span class="stat-value" id="total-hours">0h</span>
+              <span class="stat-label">予定時間</span>
             </div>
           </div>
         </section>
         
-        <!-- タスクテンプレート -->
-        <section class="sidebar-section">
-          <h3 class="sidebar-section-title">テンプレート</h3>
+        <!-- テンプレートセクション -->
+        <section class="sidebar-section templates-section">
+          <h3 class="section-title">
+            <span class="section-icon">📋</span>
+            テンプレート
+          </h3>
           
           <!-- 時刻選択状態 -->
-          <div class="time-selection-status" id="time-selection-status" style="display: none;">
+          <div class="time-selection-status glass-panel" id="time-selection-status" style="display: none;">
             <div class="selection-info">
               <span class="selection-icon">📍</span>
               <span class="selection-text">選択時刻: <span id="selected-time-display">--:--</span></span>
@@ -100,57 +158,49 @@
             </div>
           </div>
           
-          <div class="template-actions">
-            <button class="template-btn work-shift" onclick="addWorkShiftTemplate()">
-              <span class="template-icon">🌙</span>
-              <span class="template-text">夜勤</span>
-              <span class="template-time">17:00-9:00</span>
+          <!-- 基本テンプレート -->
+          <div class="template-grid">
+            <button class="template-btn sleep" onclick="addSleepTemplate(8)">
+              <span class="template-icon">🛌</span>
+              <span class="template-text">睡眠</span>
             </button>
-            
-            <div class="sleep-template-group">
-              <div class="template-label">睡眠</div>
-              <div class="sleep-options">
-                <button class="sleep-btn" onclick="addSleepTemplate(6)">
-                  <span class="sleep-icon">😴</span>
-                  <span class="sleep-text">6時間</span>
-                </button>
-                <button class="sleep-btn" onclick="addSleepTemplate(7)">
-                  <span class="sleep-icon">💤</span>
-                  <span class="sleep-text">7時間</span>
-                </button>
-                <button class="sleep-btn" onclick="addSleepTemplate(8)">
-                  <span class="sleep-icon">🛌</span>
-                  <span class="sleep-text">8時間</span>
-                </button>
-              </div>
-            </div>
-            
-            <div class="daily-template-group">
-              <div class="template-label">日常</div>
-              <div class="daily-options">
-                <button class="template-btn daily" onclick="addDailyTemplate('歯磨き', 5)">
-                  <span class="template-icon">🦷</span>
-                  <span class="template-text">歯磨き</span>
-                  <span class="template-time">5分</span>
-                </button>
-                <button class="template-btn daily" onclick="addDailyTemplate('料理', 30)">
-                  <span class="template-icon">🍳</span>
-                  <span class="template-text">料理</span>
-                  <span class="template-time">30分</span>
-                </button>
-                <button class="template-btn daily" onclick="addDailyTemplate('食事', 30)">
-                  <span class="template-icon">🍽️</span>
-                  <span class="template-text">食事</span>
-                  <span class="template-time">30分</span>
-                </button>
-                <button class="template-btn daily" onclick="addDailyTemplate('入浴', 30)">
-                  <span class="template-icon">🛁</span>
-                  <span class="template-text">入浴</span>
-                  <span class="template-time">30分</span>
-                </button>
-              </div>
-            </div>
+            <button class="template-btn meal" onclick="addTemplate('食事', 30)">
+              <span class="template-icon">🍽️</span>
+              <span class="template-text">食事</span>
+            </button>
+            <button class="template-btn exercise" onclick="addTemplate('運動', 60)">
+              <span class="template-icon">💪</span>
+              <span class="template-text">運動</span>
+            </button>
+            <button class="template-btn work" onclick="addTemplate('作業', 120)">
+              <span class="template-icon">💼</span>
+              <span class="template-text">作業</span>
+            </button>
           </div>
+          
+          <!-- 詳細テンプレート（折りたたみ可能） -->
+          <details class="template-details">
+            <summary class="template-summary">詳細テンプレート</summary>
+            <div class="detailed-templates">
+              <div class="template-category">
+                <h4 class="category-title">睡眠</h4>
+                <div class="category-options">
+                  <button class="template-btn mini" onclick="addSleepTemplate(6)">6時間</button>
+                  <button class="template-btn mini" onclick="addSleepTemplate(7)">7時間</button>
+                  <button class="template-btn mini" onclick="addSleepTemplate(8)">8時間</button>
+                </div>
+              </div>
+              <div class="template-category">
+                <h4 class="category-title">日常</h4>
+                <div class="category-options">
+                  <button class="template-btn mini" onclick="addTemplate('歯磨き', 5)">歯磨き</button>
+                  <button class="template-btn mini" onclick="addTemplate('入浴', 30)">入浴</button>
+                  <button class="template-btn mini" onclick="addTemplate('料理', 30)">料理</button>
+                  <button class="template-btn mini" onclick="addTemplate('掃除', 30)">掃除</button>
+                </div>
+              </div>
+            </div>
+          </details>
         </section>
 
         <!-- クイックアクション -->
@@ -447,7 +497,45 @@
         </section>
       </div>
     </aside>
-  </main>
+    
+    <!-- タイムラインコンテナ - Premium Design -->
+    <main class="timeline-container glass-panel" role="main" aria-label="タイムライン">
+      <div class="timeline-content">
+        <div class="day-panels">
+          <!-- 日付パネルはJavaScriptで動的に生成されます -->
+        </div>
+      </div>
+      
+      <!-- ローディング状態 -->
+      <div class="loading-skeleton" id="timeline-loading" style="display: none;">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-timeline"></div>
+      </div>
+      
+      <!-- 空の状態 -->
+      <div class="empty-state" id="timeline-empty" style="display: none;">
+        <div class="empty-icon">📅</div>
+        <h3 class="empty-title">タスクがありません</h3>
+        <p class="empty-description">新しいタスクを追加して始めましょう</p>
+        <button class="empty-action-btn" onclick="focusQuickInput()">
+          <span class="btn-icon">➕</span>
+          <span class="btn-text">タスクを追加</span>
+        </button>
+      </div>
+    </main>
+  </div>
+  
+  <!-- 選択カウンター -->
+  <div class="selection-counter glass-panel" id="selection-counter" style="display: none;">
+    <span class="counter-text">0個のタスクを選択中</span>
+    <div class="counter-actions">
+      <button class="counter-btn delete" onclick="deleteSelectedTasks()">削除</button>
+      <button class="counter-btn cancel" onclick="clearSelection()">キャンセル</button>
+    </div>
+  </div>
+  
+  <!-- トーストメッセージ -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- 右クリックコンテキストメニュー -->
   <div id="context-menu" class="context-menu" role="menu" aria-hidden="true">

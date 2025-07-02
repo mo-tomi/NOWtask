@@ -1,173 +1,330 @@
-# NowTask プロジェクト - Cursor AI ルール
+# NowTask プロジェクト - Cursor AI ルール（v2.0）
 
 ## プロジェクト概要
 NowTaskは1日の予定を1本の縦タイムラインで可視化するパーソナルタスクマネージャーです。
-段階的開発により、まずUIの完成度を高めてから機能を実装していきます。
+モダンなES Modules、Testing Trophy、クリーンアーキテクチャを採用した高度なWebアプリケーションです。
 
-## 開発段階
-### 段階1（現在）: UI表示のみ
-- HTML/CSS でのデザイン完成
-- JavaScript での時計・現在時刻ライン更新
-- ダミーデータによるタスクカード表示
-- alert()によるクリック反応のみ
+## 現在の開発段階
+### 段階3（現在）: 高度機能実装済み
+- ✅ ES Modules による完全モジュラー設計
+- ✅ Vite + Vitest + ESLint 開発環境
+- ✅ ドラッグ&ドロップ、リサイズ機能
+- ✅ localStorage による永続化
+- ✅ レーン分けアルゴリズム（O(n log n)）
+- ✅ 仮想スクロール・無限スクロール
+- ✅ Testing Trophy対応テストコード
+- ✅ Web Worker による非同期処理
+- ✅ PWA対応、レスポンシブデザイン
 
-### 段階2（今後）: 基本機能実装
-- localStorage によるデータ永続化
-- ドラッグ&ドロップ機能
-- タスクの追加・編集・削除
+### 段階4（継続中）: UX強化・最適化
+- 🔄 パフォーマンス最適化
+- 🔄 アクセシビリティ向上
+- 🔄 マイクロインタラクション
+- 🔄 AI支援機能
+- 🔄 コンテキスト適応UI
+
+## 技術スタック
+
+### コア技術
+- **JavaScript**: ES2021+ (ES Modules)
+- **Build Tool**: Vite（rolldown-vite）
+- **Package Manager**: pnpm 
+- **Testing**: Vitest + Testing Trophy
+- **Linting**: ESLint v9+
+- **CSS**: SCSS + PostCSS
+
+### アーキテクチャ
+- **パターン**: Clean Architecture + Testing Trophy
+- **モジュール分割**: core/ services/ ui/ worker/
+- **状態管理**: 中央集権的window.AppState + 分散ストア
+- **非同期処理**: Web Workers + Promise-based
+- **型安全性**: JSDoc + TypeScript型チェック
 
 ## ファイル構成
 ```
 NOWtask/
-├── index.html     # メインHTMLファイル
-├── style.css      # 全スタイル定義
-├── nowtask.js     # 全JavaScript機能
-└── .cursorrules   # このファイル
+├── index.html              # メインHTML
+├── main.js                 # エントリポイント（ES Module）
+├── style.css              # コンパイル済みCSS
+├── package.json           # 依存関係管理
+├── vite.config.js         # Vite設定
+├── eslint.config.js       # ESLint設定
+├── pnpm-workspace.yaml    # pnpm設定
+├── core/                  # コアロジック
+│   ├── laneEngine.js      # レーン分けアルゴリズム
+│   └── timeUtils.js       # 時間計算ユーティリティ
+├── services/              # ビジネスロジック
+│   └── storage.js         # データ永続化
+├── ui/                    # UI コンポーネント
+│   ├── taskCard.js        # タスクカード管理
+│   └── virtualScroll.js   # 仮想スクロール
+├── worker/                # Web Workers
+│   └── laneWorker.js      # バックグラウンド計算
+├── src/styles/            # SCSS ソース
+│   ├── _variables.scss    # 変数定義
+│   └── _mixins.scss       # ミックスイン
+├── test/                  # テストファイル
+└── tests/                 # E2Eテスト
 ```
 
 ## コーディング規約
 
+### JavaScript（ES Modules）
+- **標準**: ECMAScript 2021+
+- **インデント**: スペース2文字
+- **モジュール**: 必ずnamed exportを使用
+- **JSDoc**: 全関数に必須（型情報含む）
+- **エラーハンドリング**: try-catch + console.error
+- **非同期**: async/await優先、Promise.allで並列処理
+
+### CSS/SCSS
+- **プリプロセッサ**: SCSS使用
+- **設計**: BEM + Component-based
+- **変数**: CSS Custom Properties + SCSS変数併用
+- **レスポンシブ**: Mobile-first approach
+- **パフォーマンス**: Critical CSS最適化
+
 ### HTML
-- セマンティックタグを優先使用
-- クラス名は分かりやすく、BEMは使わない
-- aria属性でアクセシビリティを確保
-- 日本語要素にはlang="ja"を適用
+- **セマンティック**: WAI-ARIA準拠
+- **アクセシビリティ**: WCAG 2.1 AA レベル
+- **SEO**: 構造化データ + meta情報
+- **パフォーマンス**: preload/prefetch最適化
 
-### CSS
-- 生CSSのみ使用（Sass/SCSS禁止）
-- Flexboxとposition:absoluteを併用
-- CSS Gridは補助的に使用
-- 外部CSSライブラリ禁止
-- コメントで各セクションを明確に区分
-- カスタムプロパティ(CSS変数)を積極活用
+## デザインシステム v2.0
 
-### JavaScript
-- ECMAScript 2021準拠
-- 外部ライブラリ禁止（jQuery等）
-- インデント: スペース2文字
-- 関数には日本語コメント必須
-- 段階1では未実装機能は空関数で定義
-
-## デザインシステム
-
-### カラーパレット
-```css
+### カラーパレット（拡張版）
+```scss
 :root {
-  --primary: #2E8BFF;        /* メインカラー */
-  --accent: #FF4C4C;         /* アクセント・危険 */
-  --background: #F5F7FA;     /* 背景グリッド */
-  --task-normal: #F0F8FF;    /* 通常タスク */
-  --task-high: #FFE4B5;      /* 高優先度 */
-  --task-urgent: #FFB6C1;    /* 緊急 */
+  // Primary Colors
+  --primary: #2E8BFF;
+  --primary-light: #5BA3FF;
+  --primary-dark: #1C5FB8;
+  
+  // Semantic Colors
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+  
+  // Task Colors
+  --task-normal: #F8FAFC;
+  --task-high: #FEF3C7;
+  --task-urgent: #FEE2E2;
+  --task-completed: #ECFDF5;
+  
+  // Surface Colors
+  --surface-1: #FFFFFF;
+  --surface-2: #F8FAFC;
+  --surface-3: #F1F5F9;
+  
+  // Text Colors
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
 }
 ```
 
 ### タイポグラフィ
-- Interフォント必須
-- ベースサイズ: 14px
-- 行間: 1.4-1.6
-- ウェイト: 400(regular), 600(semibold)
+- **フォント**: Inter Variable（可変フォント）
+- **サイズスケール**: Modular Scale（1.25比率）
+- **ウェイト**: 400/500/600/700
+- **行間**: 1.5（本文）/ 1.2（見出し）
 
 ### スペーシング
-- ベース: 8px単位
-- カード内パディング: 8px
-- マージン: 10px, 20px
-- 角丸: 4px（カード）, 8px（パネル）
+- **ベース**: 4px単位（0.25rem）
+- **スケール**: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64px
+- **レイアウト**: 8px グリッドシステム
 
-## レスポンシブ設計
-- ブレークポイント: 768px
-- PC: タイムライン600px + サイドバー240px
-- モバイル: タイムライン100%幅、サイドバー折りたたみ
-- 横スクロール禁止
+## パフォーマンス仕様
 
-## タイムライン仕様
-- 24時間 = 1440分 = 1440px（1分=1px換算）
-- 時刻ラベル: 0:00-23:00（1時間毎）
-- 現在時刻ライン: 赤色（#FF4C4C）、2px幅
-- グリッド: 1時間毎の薄い水平線
+### Core Web Vitals
+- **LCP**: < 2.5秒（最大コンテンツ描画）
+- **FID**: < 100ms（初回入力遅延）
+- **CLS**: < 0.1（累積レイアウト変更）
 
-## インタラクション設計
-### 段階1（現在）
-- クリック時のalert()表示のみ
-- ホバー効果: box-shadow変化
-- 時計: 1秒毎更新
-- 現在時刻ライン: 1分毎更新
+### カスタム指標
+- **初期表示**: < 1秒
+- **レーン計算**: < 50ms（1000タスク）
+- **スクロール**: 60fps維持
+- **メモリ使用量**: < 50MB
 
-### 段階2以降（予定）
-- ドラッグ&ドロップ
-- アニメーション（0.3s cubic-bezier）
-- キーボードショートカット
-- ローディング状態
+## テスト戦略（Testing Trophy）
+
+### 1. Static Analysis（静的解析）
+```bash
+pnpm lint:check          # ESLint
+pnpm type:check          # TypeScript
+```
+
+### 2. Unit Tests（単体テスト）
+```bash
+pnpm test:unit           # 純粋関数テスト
+```
+
+### 3. Integration Tests（統合テスト）
+```bash
+pnpm test:integration    # モジュール間テスト
+```
+
+### 4. E2E Tests（E2Eテスト）
+```bash
+pnpm test:e2e           # ユーザーフローテスト
+```
+
+## 開発ワークフロー
+
+### 日常開発
+```bash
+pnpm dev                 # 開発サーバー起動
+pnpm test               # テスト実行（watch mode）
+pnpm lint               # コード整形
+```
+
+### ビルド・デプロイ
+```bash
+pnpm build              # プロダクションビルド
+pnpm preview            # ビルド確認
+pnpm test:run           # 全テスト実行
+```
+
+## アーキテクチャガイドライン
+
+### モジュール設計
+1. **core/**: ビジネスロジック（純粋関数）
+2. **services/**: 外部API・ストレージ
+3. **ui/**: UIコンポーネント・DOM操作
+4. **worker/**: バックグラウンド処理
+
+### 依存関係ルール
+- core → 他モジュールに依存しない
+- services → core のみ依存可能
+- ui → core, services に依存可能
+- main.js → 全モジュールをオーケストレーション
+
+### 状態管理
+- **グローバル状態**: window.AppState（最小限）
+- **ローカル状態**: 各コンポーネント内
+- **永続化**: services/storage.js経由のみ
+
+## パフォーマンス最適化
+
+### メモリ管理
+- WeakMap/WeakSet使用
+- イベントリスナー適切な削除
+- 定期的なガベージコレクション
+
+### レンダリング最適化
+- requestAnimationFrame使用
+- Virtual Scrolling
+- CSS contain プロパティ
+- will-change 適切な使用
+
+### ネットワーク最適化
+- Service Worker
+- Critical CSS inlining
+- Resource Hints（preload/prefetch）
 
 ## アクセシビリティ
-- コントラスト比 4.5:1以上確保
-- キーボード操作対応
-- スクリーンリーダー対応
-- focus状態の明確な表示
 
-## パフォーマンス要件
-- 初期読み込み < 1秒
-- 60fps のスムーズなスクロール
-- リフロー/リペイントの最小化
-- 画像最適化（将来の機能拡張時）
+### 必須対応
+- **キーボード操作**: Tab/Enter/Escape/Arrow keys
+- **スクリーンリーダー**: ARIA + role属性
+- **色覚**: コントラスト比4.5:1以上
+- **運動機能**: 44px以上のタッチターゲット
 
-## コメント規約
-### JavaScript
+### 実装パターン
 ```javascript
-// メイン機能: 時計表示の更新
-function updateClock() {
-  // 現在時刻の取得
-  const now = new Date();
-  // フォーマット処理
-  // ...
-}
+// Focus管理
+element.setAttribute('tabindex', '0');
+element.setAttribute('aria-label', '説明テキスト');
+
+// ライブリージョン
+announceToScreenReader('変更内容', 'polite');
 ```
 
-### CSS
-```css
-/* ===== ヘッダーセクション ===== */
-.header {
-  /* 位置固定: 画面上部に張り付け */
-  position: fixed;
-  /* 背景色: メインカラー */
-  background-color: var(--primary);
-}
+## セキュリティ
+
+### XSS対策
+- innerHTMLの使用禁止
+- DOMPurify使用（必要時のみ）
+- Content Security Policy
+
+### データ保護
+- localStorage暗号化
+- 機密データの適切な削除
+- セッション管理
+
+## デバッグ・監視
+
+### 開発時
+```javascript
+// デバッグフラグ
+?debug=true              # 詳細ログ出力
+?performance=true        # パフォーマンス計測
+?test=true              # テストモード
 ```
 
-## エラーハンドリング
-- try-catch での適切な例外処理
-- ユーザーフレンドリーなエラーメッセージ
-- コンソールエラーの完全排除
-- フォールバック値の設定
+### 本番環境
+- エラートラッキング
+- パフォーマンス監視
+- ユーザー行動分析
 
-## 将来拡張への配慮
-- 機能追加しやすいモジュラー構造
-- データ構造の統一化
-- API連携を想定したインターフェース設計
-- 国際化対応の準備
+## 将来拡張計画
+
+### Phase 4: AI支援
+- タスク自動分類
+- 予測スケジューリング
+- 集中時間分析
+
+### Phase 5: チーム機能
+- リアルタイム同期
+- 共有カレンダー
+- コラボレーション
 
 ## ブラウザサポート
-- Chrome（最新安定版）: 完全サポート
-- Safari, Firefox: ベストエフォート
-- IE: サポート対象外
+- **Chrome**: 最新2バージョン（完全サポート）
+- **Firefox**: 最新2バージョン（完全サポート）  
+- **Safari**: 最新2バージョン（完全サポート）
+- **Edge**: 最新2バージョン（完全サポート）
 
-## 開発時の注意点
-1. 段階1では機能実装より UI完成度を優先
-2. すべての変更は段階的に実装
-3. レスポンシブ対応は PC/モバイル両方で確認
-4. 時刻計算は1分=1px換算を厳守
-5. 日本語UI/コメントを維持
+## 禁止事項・非推奨
 
-## 禁止事項
-- 外部ライブラリの追加
-- サブフォルダの作成
-- 複雑なビルドプロセス
-- インラインスタイル（style属性）の多用
-- グローバル変数の濫用
+### 技術的制約
+- ❌ jQuery等の重いライブラリ
+- ❌ document.write()
+- ❌ eval() / Function()
+- ❌ インラインスタイル（緊急時以外）
+- ❌ グローバル変数の濫用
 
-## 不要機能（実装禁止）
-- **ダークモード**: テーマ切り替え機能は実装しない
-- **キーボードショートカット**: 複雑なキーボード操作は実装しない
-- **カスタムテーマ**: ユーザーによる色変更機能は実装しない
-- **多言語対応**: 日本語のみで開発し、国際化は考慮しない
-- **複雑なアニメーション**: 基本的なホバー効果のみに留める 
+### 機能制約（意図的な制限）
+- **複雑なテーマシステム**: シンプルさ維持
+- **過度なアニメーション**: パフォーマンス優先  
+- **不要な通知**: 集中妨害の回避
+- **プラグインシステム**: コア機能の安定性優先
+- **キーボードショートカット**: 直感性・シンプルさ維持のため全面禁止
+- **ダークモード**: 統一された美しいライトテーマに特化、複雑性排除のため全面禁止
+
+## エラーハンドリング
+
+### 階層的エラー処理
+```javascript
+try {
+  // 危険な処理
+} catch (error) {
+  console.error('モジュール名:エラー詳細', error);
+  showUserFriendlyMessage('操作を完了できませんでした');
+  reportToAnalytics(error);
+}
+```
+
+### ユーザー体験
+- 非破壊的フォールバック
+- 明確なエラーメッセージ
+- 復旧操作の提示
+
+## 国際化（将来対応）
+- 文字列外部化準備
+- 日付・時刻フォーマット
+- RTL言語対応設計
+
+この更新されたルールに従って、高品質で保守性の高いコードを継続的に開発してください。 

@@ -12,10 +12,9 @@ import {
   getCurrentDateString,
   getDayOfWeek
 } from '../core/timeUtils.js';
-import { assignLanes, updateGridLayout } from '../core/laneEngine.js';
+import { assignLanes, updateGridLayout, recalculateAllLanes } from '../core/laneEngine.js';
 import { createTaskCard } from './taskCard.js';
 import { Task, saveToStorage } from '../services/storage.js';
-import { recalculateAllLanes } from '../core/laneEngine.js';
 
 /**
  * 仮想スクロール用グローバル状態
@@ -31,7 +30,16 @@ let currentDate = getCurrentDateString();
 function updateURL(date) {
   try {
     const url = new URL(window.location);
-    url.searchParams.set('date', date);
+    const today = getCurrentDateString();
+
+    if (date === today) {
+      // 今日の場合はURLパラメータを削除
+      url.searchParams.delete('date');
+    } else {
+      // 過去/未来の日付の場合のみパラメータ設定
+      url.searchParams.set('date', date);
+    }
+
     window.history.replaceState(null, '', url);
   } catch (error) {
     console.error('URL更新エラー:', error);
@@ -110,16 +118,16 @@ export function createDayPanel(dateString) {
       for (let minute = 0; minute < 60; minute += 30) {
         const totalMinutes = hour * 60 + minute;
         const timeLabel = document.createElement('div');
-        
+
         // 30分間隔なので全てメジャー時刻扱い
         timeLabel.className = 'time-label major';
         timeLabel.dataset.hour = hour;
         timeLabel.dataset.minute = minute;
         timeLabel.dataset.totalMinutes = totalMinutes;
-        
+
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         timeLabel.textContent = timeString;
-        
+
         timeLabel.style.cssText = `
           position: absolute;
           left: 8px;
@@ -134,26 +142,26 @@ export function createDayPanel(dateString) {
           cursor: pointer;
           transition: all 0.2s ease;
         `;
-        
+
         // ホバー効果
         timeLabel.addEventListener('mouseenter', () => {
           timeLabel.style.background = 'var(--primary)';
           timeLabel.style.color = 'white';
           timeLabel.style.fontWeight = '600';
         });
-        
+
         timeLabel.addEventListener('mouseleave', () => {
           timeLabel.style.background = 'var(--background)';
           timeLabel.style.color = 'var(--gray-600)';
           timeLabel.style.fontWeight = '500';
         });
-        
+
         // クリックイベント：その時間にタスクを追加（15分刻み対応）
         timeLabel.addEventListener('click', (e) => {
           e.stopPropagation();
           createTaskAtTime(dateString, hour, minute);
         });
-        
+
         timeline.appendChild(timeLabel);
       }
     }
@@ -163,24 +171,25 @@ export function createDayPanel(dateString) {
       for (let minute = 15; minute < 60; minute += 30) { // 15分と45分のみ
         const totalMinutes = hour * 60 + minute;
         const clickArea = document.createElement('div');
-        
+
         clickArea.className = 'time-click-area';
         clickArea.dataset.hour = hour;
         clickArea.dataset.minute = minute;
         clickArea.dataset.totalMinutes = totalMinutes;
-        
+
         clickArea.style.cssText = `
           position: absolute;
           left: 0;
           top: ${totalMinutes - 15}px;
           right: 0;
           height: 30px;
-          z-index: 115;
+          z-index: 5;
           cursor: pointer;
           opacity: 0;
           transition: opacity 0.2s ease;
+          pointer-events: auto;
         `;
-        
+
         // ホバー時に15分刻み時刻を表示
         clickArea.addEventListener('mouseenter', () => {
           const tooltip = document.createElement('div');
@@ -203,20 +212,36 @@ export function createDayPanel(dateString) {
           timeline.appendChild(tooltip);
           clickArea._tooltip = tooltip;
         });
-        
+
         clickArea.addEventListener('mouseleave', () => {
           if (clickArea._tooltip && clickArea._tooltip.parentNode) {
             clickArea._tooltip.parentNode.removeChild(clickArea._tooltip);
             clickArea._tooltip = null;
           }
         });
-        
+
         // 15分刻みでのタスク作成
         clickArea.addEventListener('click', (e) => {
+          // タスクカードが存在する場合はクリックを無視
+          const existingTask = timeline.querySelector('.task-card');
+          if (existingTask) {
+            const taskRect = existingTask.getBoundingClientRect();
+            const clickRect = clickArea.getBoundingClientRect();
+            const isOverlapping = !(
+              taskRect.bottom < clickRect.top ||
+              taskRect.top > clickRect.bottom ||
+              taskRect.right < clickRect.left ||
+              taskRect.left > clickRect.right
+            );
+            if (isOverlapping) {
+              return; // タスクカードと重複している場合は何もしない
+            }
+          }
+
           e.stopPropagation();
           createTaskAtTime(dateString, hour, minute);
         });
-        
+
         timeline.appendChild(clickArea);
       }
     }
@@ -293,25 +318,25 @@ export function createDayPanel(dateString) {
 function createTaskAtTime(dateString, hour, minute) {
   try {
     const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-    
+
     // 1時間後の終了時刻を計算（15分単位でスナップ）
     let endHour = hour;
     let endMinute = minute + 60;
-    
+
     if (endMinute >= 60) {
       endHour = (endHour + 1) % 24;
       endMinute = endMinute % 60;
     }
-    
+
     // 15分単位にスナップ
     endMinute = Math.round(endMinute / 15) * 15;
     if (endMinute >= 60) {
       endHour = (endHour + 1) % 24;
       endMinute = 0;
     }
-    
+
     const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
-    
+
     // インライン入力でタスク名を取得
     showInlineInput(
       `${startTime}のタスクを追加`,
@@ -327,34 +352,34 @@ function createTaskAtTime(dateString, hour, minute) {
           'normal',
           dateString
         );
-        
+
         // AppStateに追加
         if (window.AppState) {
           window.AppState.tasks.push(newTask);
           saveToStorage();
           recalculateAllLanes();
-          
+
           // 該当日付パネルを再描画
           const panel = document.querySelector(`[data-date="${dateString}"]`);
           if (panel) {
             renderTasksToPanel(dateString, panel);
           }
-          
+
           console.log('✅ タイムラインクリックでタスク作成:', {
             title: newTask.title,
             time: `${startTime}-${endTime}`,
             date: dateString,
             id: newTask.id
           });
-          
+
           // 作成成功のフィードバック（短時間だけ表示）
           showTaskCreatedFeedback(startTime);
         }
       }
     );
-    
-    return; // 関数を抜ける（非同期処理のため）
-    
+
+     // 関数を抜ける（非同期処理のため）
+
   } catch (error) {
     console.error('タイムラインタスク作成エラー:', error);
     alert('タスクの作成に失敗しました。もう一度お試しください。');
@@ -380,9 +405,9 @@ function showTaskCreatedFeedback(time) {
     z-index: 1000;
     animation: slideInFade 0.3s ease-out;
   `;
-  
+
   document.body.appendChild(feedback);
-  
+
   // 2秒後に自動削除
   setTimeout(() => {
     feedback.style.animation = 'slideOutFade 0.3s ease-in';
@@ -831,3 +856,8 @@ export { virtualizedDays, currentDate };
 
 // 日付ナビゲーションを外部からも使用可能に
 window.navigateDate = navigateDate;
+
+// ===== Stub functions =====
+export function showInlineInput() {
+  console.warn('showInlineInput stub');
+}

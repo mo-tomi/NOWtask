@@ -2620,6 +2620,10 @@ select:focus-visible,
     var(--shadow-lg) !important;
 }
 
+.task-card {
+  z-index: 100;
+}
+
 .task-card.selected {
   border: 2px solid var(--primary) !important;
   box-shadow: 
