@@ -14,7 +14,6 @@ import { ensureVisibleDays, renderTasksToPanel } from './virtualScroll.js';
  * HTML文字列エスケープ（セキュリティ対策）
  */
 function escapeHtml(text) {
-  if (typeof text !== 'string') {return '';}
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
@@ -39,71 +38,68 @@ function announceToScreenReader(message, priority = 'polite') {
 }
 
 /**
- * 通知表示（UI feedback）
+ * 通知メッセージを表示（改善版）
+ * @param {string} message - 表示するメッセージ
+ * @param {string} type - 通知のタイプ ('success', 'error', 'info')
+ * @param {number} duration - 表示時間（ミリ秒）
  */
-function showNotification(message, type = 'info') {
+export function showNotification(message, type = 'info', duration = 4000) {
   try {
-    // ARIA Live Region での読み上げ
-    const priority = type === 'error' ? 'assertive' : 'polite';
-    announceToScreenReader(message, priority);
-
-    // 既存の通知があれば削除
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-      existingNotification.remove();
-    }
-
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.setAttribute('role', 'alert');
-    notification.setAttribute('aria-live', priority);
-    notification.style.cssText = `
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      box-shadow: var(--shadow-lg);
-      z-index: 2000;
-      font-weight: 500;
-      color: white;
-      max-width: 300px;
-      transition: all 0.3s ease;
-      opacity: 0;
-      transform: translateX(100%);
-    `;
-
-    // タイプ別の背景色
-    const colors = {
-      success: 'var(--success)',
-      error: 'var(--accent)',
-      info: 'var(--info)',
-      warning: 'var(--warning)'
-    };
-    notification.style.background = colors[type] || colors.info;
-
-    document.body.appendChild(notification);
-
-    // アニメーション表示
-    requestAnimationFrame(() => {
-      notification.style.opacity = '1';
-      notification.style.transform = 'translateX(0)';
+    // 既存の通知を削除
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+      notification.classList.add('hiding');
+      setTimeout(() => notification.remove(), 300);
     });
 
-    // 3秒後に自動削除
+    // 新しい通知要素を作成
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    // アイコンとメッセージを設定
+    const icons = {
+      success: '✓',
+      error: '⚠',
+      info: 'ℹ'
+    };
+    
+    notification.innerHTML = `
+      <span class="notification-icon">${icons[type] || icons.info}</span>
+      <span class="notification-message">${escapeHtml(message)}</span>
+    `;
+
+    // DOM に追加
+    document.body.appendChild(notification);
+
+    // 指定時間後に自動削除
     setTimeout(() => {
-      notification.style.opacity = '0';
-      notification.style.transform = 'translateX(100%)';
+      if (notification.parentNode) {
+        notification.classList.add('hiding');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 300);
+      }
+    }, duration);
+
+    // 通知をクリックして手動削除
+    notification.addEventListener('click', () => {
+      notification.classList.add('hiding');
       setTimeout(() => {
         if (notification.parentNode) {
           notification.remove();
         }
       }, 300);
-    }, 3000);
+    });
+
+    // アクセシビリティ：スクリーンリーダーに通知
+    announceToScreenReader(message, type === 'error' ? 'assertive' : 'polite');
 
   } catch (error) {
     console.error('通知表示エラー:', error);
+    // フォールバック：console.log で表示
+    console.log(`${type.toUpperCase()}: ${message}`);
   }
 }
 
@@ -229,36 +225,57 @@ function createSingleTaskCard(task, parentId) {
     card.innerHTML = `
       <div class="task-content">
         <div class="task-header">
-          <h3 class="task-title" onclick="editTaskTitle('${effectiveId}')">${escapeHtml(task.title)}</h3>
+          <h3 class="task-title" onclick="editTaskTitle('${effectiveId}')" 
+             data-tooltip="クリックして編集 (E)" data-tooltip-pos="top">${escapeHtml(task.title)}</h3>
           <div class="task-actions">
             <button class="task-action-btn" onclick="toggleTaskCompletion('${effectiveId}')" 
                     title="${task.completed ? '未完了に戻す' : '完了にする'}"
+                    data-tooltip="${task.completed ? '未完了に戻す' : '完了にする'}"
                     aria-label="${task.completed ? '未完了に戻す' : '完了にする'}">
               ${task.completed ? '↺' : '✓'}
             </button>
             <button class="task-action-btn delete-btn" onclick="confirmDeleteTask('${effectiveId}')" 
-                    title="削除" aria-label="タスクを削除">✕</button>
+                    title="削除" aria-label="タスクを削除"
+                    data-tooltip="削除 (Del)" data-tooltip-pos="top">✕</button>
           </div>
         </div>
         <div class="task-time-container">
           <div class="task-time" onclick="editTaskTime('${effectiveId}')" 
                datetime="${task.startTime}/${task.endTime}"
+               data-tooltip="時刻を編集"
                title="クリックして時刻を編集">${task.getTimeString()}</div>
         </div>
-        <div class="task-resize-handle" title="ドラッグしてサイズ変更"></div>
+        <div class="task-resize-handle" 
+             data-tooltip="ドラッグしてサイズ変更" 
+             data-tooltip-pos="bottom"
+             title="ドラッグしてサイズ変更"></div>
       </div>
     `;
 
     /* ❹ ドラッグ & リサイズ機能の有効化 */
     enableDragAndResize(card);
 
-    /* ❺ 基本的なARIA属性 */
+    /* ❺ マルチセレクト機能の追加 */
+    card.addEventListener('click', (e) => handleTaskCardClick(e, task.id));
+
+    /* ❻ 基本的なARIA属性 */
     setTaskCardARIA(card, task);
 
-    /* ❻ 右クリックメニューの設定 - DOM追加後に実行 */
+    /* ❼ 右クリックメニューの設定 - DOM追加後に実行 */
     setTimeout(() => {
       setupContextMenu(card, task);
     }, 0);
+
+    /* ❽ 作成アニメーションを適用 */
+    card.classList.add('creating');
+    
+    // アニメーション終了後にクラスを削除
+    card.addEventListener('animationend', function onAnimationEnd(e) {
+      if (e.animationName === 'task-create') {
+        card.classList.remove('creating');
+        card.removeEventListener('animationend', onAnimationEnd);
+      }
+    });
 
     return card;
 
@@ -452,75 +469,49 @@ function updateTaskFromCard(taskId, updates) {
  */
 export function editTaskTitle(taskId) {
   try {
-    const appState = window.AppState;
-    const task = appState.tasks.find(t => t.id === taskId);
-    if (!task) {return;}
+    const task = window.taskManager.getTask(taskId);
+    if (!task) {
+      console.warn(`タスクが見つかりません: ${taskId}`);
+      return;
+    }
 
+    // 編集中のアニメーション効果
     const card = document.querySelector(`[data-task-id="${taskId}"]`);
-    const titleElement = card.querySelector('.task-title');
+    if (card) {
+      card.classList.add('editing');
+      setTimeout(() => card.classList.remove('editing'), 300);
+    }
 
-    // すでに編集中の場合は何もしない
-    if (titleElement.querySelector('input')) {return;}
-
-    const currentTitle = task.title;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentTitle;
-    input.className = 'inline-edit-input';
-    input.style.cssText = `
-      background: rgba(255, 255, 255, 0.95);
-      border: 2px solid var(--primary);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-family: inherit;
-      font-size: inherit;
-      font-weight: inherit;
-      width: 100%;
-      box-sizing: border-box;
-      margin: -2px 0;
-    `;
-
-    // 元のテキストを隠して入力フィールドを挿入
-    titleElement.style.display = 'none';
-    titleElement.parentNode.insertBefore(input, titleElement.nextSibling);
-    input.focus();
-    input.select();
-
-    // 保存関数
-    const saveEdit = () => {
-      const newTitle = input.value.trim();
-      if (newTitle && newTitle !== currentTitle) {
-        updateTaskFromCard(taskId, { title: newTitle });
-        showNotification('タスク名を更新しました', 'success');
+    // インライン入力を表示
+    showInlineInput(
+      'タスク名を編集',
+      'タスク名を入力してください',
+      task.title,
+      (newTitle) => {
+        if (newTitle && newTitle.trim() !== task.title) {
+          // タスクタイトルを更新
+          const updateResult = window.taskManager.updateTask(taskId, { title: newTitle.trim() });
+          
+          if (updateResult.success) {
+            // DOM要素のタイトルを更新
+            const titleElements = document.querySelectorAll(`[data-task-id="${taskId}"] .task-title, [data-parent-id="${taskId}"] .task-title`);
+            titleElements.forEach(titleEl => {
+              titleEl.textContent = newTitle.trim();
+            });
+            
+            showNotification('タスク名を変更しました', 'success');
+            announceToScreenReader(`タスク名を「${newTitle.trim()}」に変更しました`);
+            
+          } else {
+            showNotification('タスク名の変更に失敗しました', 'error');
+          }
+        }
       }
-
-      // 元に戻す
-      titleElement.textContent = newTitle || currentTitle;
-      titleElement.style.display = '';
-      input.remove();
-    };
-
-    // キャンセル関数
-    const cancelEdit = () => {
-      titleElement.style.display = '';
-      input.remove();
-    };
-
-    // イベントリスナー
-    input.addEventListener('blur', saveEdit);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        saveEdit();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        cancelEdit();
-      }
-    });
+    );
 
   } catch (error) {
-    console.error('タイトル編集エラー:', error);
-    showNotification('タイトル編集に失敗しました', 'error');
+    console.error('タスク名編集エラー:', error);
+    showNotification('タスク名の編集でエラーが発生しました', 'error');
   }
 }
 
@@ -861,37 +852,91 @@ function duplicateTask(taskId) {
 }
 
 /**
- * 確認付きタスク削除
+ * 確認ダイアログ付きタスク削除（アニメーション対応）
  * @param {string} taskId - 削除するタスクID
  */
 function deleteTaskWithConfirmation(taskId) {
   try {
-    const appState = window.AppState;
-    const task = appState.tasks.find(t => t.id === taskId);
-    if (!task) {return;}
-
-    const confirmed = confirm(`「${task.title}」を削除しますか？\n\nこの操作は元に戻せません。`);
-    if (!confirmed) {return;}
-
-    // タスクを削除
-    const taskIndex = appState.tasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-      appState.tasks.splice(taskIndex, 1);
-      saveToStorage();
-      recalculateAllLanes();
-
-      // DOMからカードを削除
-      const card = document.querySelector(`[data-task-id="${taskId}"]`);
-      if (card) {
-        card.remove();
-      }
-
-      showNotification('タスクを削除しました', 'success');
+    const task = window.taskManager.getTask(taskId);
+    if (!task) {
+      console.warn(`タスクが見つかりません: ${taskId}`);
+      return;
     }
+
+    // 削除確認モーダル
+    showInlineInput(
+      '⚠️ タスクを削除しますか？',
+      'この操作は取り消せません',
+      '',
+      (confirmedValue) => {
+        // 空文字列で確認された場合は削除実行
+        if (confirmedValue === '') {
+          deleteTaskWithAnimation(taskId);
+        }
+      }
+    );
 
   } catch (error) {
     console.error('タスク削除エラー:', error);
     showNotification('タスクの削除に失敗しました', 'error');
+  }
+}
+
+/**
+ * アニメーション付きタスク削除
+ * @param {string} taskId - 削除するタスクID
+ */
+function deleteTaskWithAnimation(taskId) {
+  try {
+    // DOM要素を取得
+    const cards = document.querySelectorAll(`[data-task-id="${taskId}"], [data-parent-id="${taskId}"]`);
+    
+    if (cards.length === 0) {
+      console.warn(`削除対象のカードが見つかりません: ${taskId}`);
+      return;
+    }
+
+    // 削除アニメーションを開始
+    cards.forEach(card => {
+      card.classList.add('deleting');
+    });
+
+    // アニメーション完了後にDOM削除とデータ削除
+    const firstCard = cards[0];
+    firstCard.addEventListener('animationend', function onDeleteAnimationEnd(e) {
+      if (e.animationName === 'task-delete') {
+        // データから削除
+        const deleteResult = window.taskManager.deleteTask(taskId);
+        
+        if (deleteResult.success) {
+          // すべてのカードをDOMから削除
+          cards.forEach(card => {
+            if (card.parentNode) {
+              card.remove();
+            }
+          });
+          
+          // 成功通知
+          showNotification('タスクを削除しました', 'success');
+          
+          // スクリーンリーダー通知
+          announceToScreenReader(`タスク「${deleteResult.task.title}」を削除しました`);
+          
+        } else {
+          // 失敗時はアニメーションを戻す
+          cards.forEach(card => {
+            card.classList.remove('deleting');
+          });
+          showNotification('タスクの削除に失敗しました', 'error');
+        }
+        
+        firstCard.removeEventListener('animationend', onDeleteAnimationEnd);
+      }
+    });
+
+  } catch (error) {
+    console.error('アニメーション付きタスク削除エラー:', error);
+    showNotification('タスクの削除中にエラーが発生しました', 'error');
   }
 }
 
@@ -923,6 +968,9 @@ function showInlineInput(title, placeholder, defaultValue = '', onConfirm) {
   inputField.placeholder = placeholder;
   inputField.value = defaultValue;
   overlay.style.display = 'flex';
+  
+  // アクセシビリティ属性を更新（フォーカス可能にする）
+  overlay.setAttribute('aria-hidden', 'false');
 
   // フォーカスを設定
   setTimeout(() => {
@@ -946,6 +994,8 @@ function hideInlineInput() {
 
   if (overlay) {
     overlay.style.display = 'none';
+    // アクセシビリティ属性を元に戻す
+    overlay.setAttribute('aria-hidden', 'true');
   }
 
   if (inputField) {
@@ -1075,3 +1125,67 @@ export const TaskCardTest = {
     };
   }
 };
+
+/**
+ * タスクカードクリック時のマルチセレクト処理
+ * @param {Event} e - クリックイベント
+ * @param {string} taskId - タスクID
+ */
+function handleTaskCardClick(e, taskId) {
+  // タスクタイトルやボタンクリックの場合はマルチセレクト処理をスキップ
+  if (e.target.closest('.task-title') || 
+      e.target.closest('.task-action-btn') || 
+      e.target.closest('.task-time') ||
+      e.target.closest('.task-resize-handle')) {
+    return;
+  }
+
+  // マルチセレクト処理
+  if (e.shiftKey && window.lastSelectedTaskId) {
+    // Shift+クリック: 範囲選択
+    selectTaskRange(window.lastSelectedTaskId, taskId);
+  } else if (e.ctrlKey || e.metaKey) {
+    // Ctrl+クリック: 個別選択トグル
+    window.toggleTaskSelection(taskId);
+  } else {
+    // 通常クリック: 単一選択
+    window.clearAllSelections();
+    window.toggleTaskSelection(taskId);
+  }
+
+  window.lastSelectedTaskId = taskId;
+}
+
+/**
+ * 範囲選択処理
+ * @param {string} startTaskId - 開始タスクID
+ * @param {string} endTaskId - 終了タスクID
+ */
+function selectTaskRange(startTaskId, endTaskId) {
+  const taskCards = Array.from(document.querySelectorAll('.task-card')).sort((a, b) => {
+    const getTopPosition = (card) => {
+      const transform = card.style.transform;
+      const match = transform.match(/translateY\((\d+)px\)/);
+      return match ? parseInt(match[1]) : 0;
+    };
+    return getTopPosition(a) - getTopPosition(b);
+  });
+
+  const startIndex = taskCards.findIndex(card => card.dataset.taskId === startTaskId);
+  const endIndex = taskCards.findIndex(card => card.dataset.taskId === endTaskId);
+
+  if (startIndex === -1 || endIndex === -1) return;
+
+  const minIndex = Math.min(startIndex, endIndex);
+  const maxIndex = Math.max(startIndex, endIndex);
+
+  for (let i = minIndex; i <= maxIndex; i++) {
+    const taskId = taskCards[i].dataset.taskId;
+    if (!window.selectedTasks.has(taskId)) {
+      window.selectedTasks.add(taskId);
+    }
+  }
+
+  window.updateTaskSelectionUI();
+  window.updateSelectionCounter();
+}

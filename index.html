@@ -24,7 +24,9 @@
         <button class="date-nav-btn" onclick="navigateDate(-1)" aria-label="前日">‹</button>
         <div id="main-clock" class="main-clock" onclick="showDatePicker()" title="クリックして日付を変更">2025-01-01 00:00</div>
         <button class="date-nav-btn" onclick="navigateDate(1)" aria-label="翌日">›</button>
-        <button class="today-btn" onclick="jumpToToday()" aria-label="今日に移動" title="今日の日付に戻る">今日</button>
+        <button id="today-btn" class="header-btn today-btn" 
+                data-tooltip="今日に移動 (T)" data-tooltip-pos="bottom"
+                title="今日の日付に移動します">今日</button>
       </div>
     </div>
     <div class="header-right">
@@ -139,6 +141,11 @@
                 <button class="template-btn daily" onclick="addDailyTemplate('食事', 30)">
                   <span class="template-icon">🍽️</span>
                   <span class="template-text">食事</span>
+                  <span class="template-time">30分</span>
+                </button>
+                <button class="template-btn daily" onclick="addDailyTemplate('入浴', 30)">
+                  <span class="template-icon">🛁</span>
+                  <span class="template-text">入浴</span>
                   <span class="template-time">30分</span>
                 </button>
               </div>
@@ -443,42 +450,143 @@
   </main>
 
   <!-- 右クリックコンテキストメニュー -->
-  <div id="context-menu" class="context-menu" style="display: none;">
-    <div class="context-menu-item" data-action="edit-title">
-      <span class="context-icon">✏️</span>
-      <span class="context-text">名前を変更</span>
-    </div>
-    <div class="context-menu-item" data-action="edit-time">
-      <span class="context-icon">🕒</span>
-      <span class="context-text">時間を変更</span>
-    </div>
+  <div id="context-menu" class="context-menu" role="menu" aria-hidden="true">
+    <div class="context-menu-item" role="menuitem" data-action="edit-title">✏️ 名前を変更</div>
+    <div class="context-menu-item" role="menuitem" data-action="edit-time">🕒 時間を変更</div>
+    <div class="context-menu-item" role="menuitem" data-action="duplicate">📋 複製</div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item" data-action="duplicate">
-      <span class="context-icon">📋</span>
-      <span class="context-text">複製</span>
-    </div>
-    <div class="context-menu-separator"></div>
-    <div class="context-menu-item danger" data-action="delete">
-      <span class="context-icon">🗑️</span>
-      <span class="context-text">削除</span>
-    </div>
+    <div class="context-menu-item danger" role="menuitem" data-action="delete">🗑️ 削除</div>
   </div>
 
   <!-- インライン入力オーバーレイ -->
-  <div id="inline-input-overlay" class="inline-input-overlay" style="display: none;">
+  <div id="inline-input-overlay" class="inline-input-overlay" role="dialog" aria-hidden="true">
     <div class="inline-input-modal">
-      <div class="inline-input-header">
-        <h3 id="inline-input-title">タスク名を入力</h3>
-        <button class="inline-input-close" onclick="hideInlineInput()">✕</button>
-      </div>
-      <div class="inline-input-content">
-        <input type="text" id="inline-input-field" class="inline-input-field" placeholder="タスク名を入力してください">
-        <div class="inline-input-actions">
-          <button class="inline-input-btn cancel" onclick="hideInlineInput()">キャンセル</button>
-          <button class="inline-input-btn confirm" onclick="confirmInlineInput()">確定</button>
-        </div>
+      <h3 id="inline-input-title" class="inline-input-title"></h3>
+      <input type="text" id="inline-input-field" class="inline-input-field" placeholder="">
+      <div class="inline-input-buttons">
+        <button type="button" id="inline-input-cancel" class="inline-input-cancel">キャンセル</button>
+        <button type="button" id="inline-input-confirm" class="inline-input-confirm">確認</button>
       </div>
     </div>
+  </div>
+
+  <!-- キーボードショートカットヘルプモーダル -->
+  <div id="keyboard-help-overlay" class="keyboard-help-overlay" role="dialog" aria-labelledby="keyboard-help-title" aria-hidden="true">
+    <div class="keyboard-help-modal">
+      <h2 id="keyboard-help-title" class="keyboard-help-title">⌨️ キーボードショートカット</h2>
+      
+      <div class="keyboard-shortcuts-grid">
+        <div class="shortcut-category">
+          <h3 class="shortcut-category-title">基本操作</h3>
+          <div class="shortcut-item">
+            <span class="shortcut-description">新しいタスクを作成</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">N</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">今日に移動</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">T</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">ヘルプを表示</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">?</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shortcut-category">
+          <h3 class="shortcut-category-title">ナビゲーション</h3>
+          <div class="shortcut-item">
+            <span class="shortcut-description">前の日</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">←</span>
+              <span class="shortcut-key">H</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">次の日</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">→</span>
+              <span class="shortcut-key">L</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">タスクを選択</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">↑↓</span>
+              <span class="shortcut-key">Tab</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shortcut-category">
+          <h3 class="shortcut-category-title">タスク操作</h3>
+          <div class="shortcut-item">
+            <span class="shortcut-description">選択中タスクを編集</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">Enter</span>
+              <span class="shortcut-key">E</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">選択中タスクを削除</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">Del</span>
+              <span class="shortcut-key">D</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">選択中タスクを複製</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">D</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="shortcut-category">
+          <h3 class="shortcut-category-title">マルチセレクト</h3>
+          <div class="shortcut-item">
+            <span class="shortcut-description">複数選択</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">Shift</span>
+              <span class="shortcut-key">Click</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">選択範囲追加</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">Click</span>
+            </div>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-description">全選択/解除</span>
+            <div class="shortcut-keys">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">A</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="keyboard-help-close" onclick="hideKeyboardHelp()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- リアルタイムフィードバック表示 -->
+  <div id="realtime-feedback" class="realtime-feedback">
+    <div class="realtime-feedback-time"></div>
+    <div class="realtime-feedback-duration"></div>
+  </div>
+
+  <!-- セレクションカウンター -->
+  <div id="selection-counter" class="selection-counter">
+    <span id="selection-count">0</span>個のタスクを選択中
   </div>
 
   <!-- ARIA Live Region for Screen Reader Announcements -->
