@@ -8,7 +8,7 @@
 import { timeStringToMinutes, minutesToTimeString, snap15, isValidTimeRange } from '../core/timeUtils.js';
 import { recalculateAllLanes } from '../core/laneEngine.js';
 import { saveToStorage, Task } from '../services/storage.js';
-import { ensureVisibleDays } from './virtualScroll.js';
+import { ensureVisibleDays, renderTasksToPanel } from './virtualScroll.js';
 
 /**
  * HTML文字列エスケープ（セキュリティ対策）
@@ -254,6 +254,11 @@ function createSingleTaskCard(task, parentId) {
 
     /* ❺ 基本的なARIA属性 */
     setTaskCardARIA(card, task);
+
+    /* ❻ 右クリックメニューの設定 - DOM追加後に実行 */
+    setTimeout(() => {
+      setupContextMenu(card, task);
+    }, 0);
 
     return card;
 
@@ -663,6 +668,326 @@ export function editTaskTime(taskId) {
     showNotification('時刻編集に失敗しました', 'error');
   }
 }
+
+/**
+ * 右クリックメニューの設定
+ * @param {HTMLElement} card - タスクカード要素
+ * @param {Task} task - タスクオブジェクト
+ */
+function setupContextMenu(card, task) {
+  // 右クリックイベントの設定
+  card.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    console.log('🖱️ 右クリック検出:', task.id, task.title);
+    showContextMenu(e.clientX, e.clientY, task.id);
+  });
+
+  // 通常の左クリックでメニューを非表示
+  card.addEventListener('click', hideContextMenu);
+  
+  console.log('📋 コンテキストメニュー設定完了:', task.id, task.title);
+}
+
+/**
+ * コンテキストメニューの表示
+ * @param {number} x - マウスX座標
+ * @param {number} y - マウスY座標
+ * @param {string} taskId - タスクID
+ */
+function showContextMenu(x, y, taskId) {
+  console.log('📋 コンテキストメニュー表示試行:', { x, y, taskId });
+  
+  const contextMenu = document.getElementById('context-menu');
+  if (!contextMenu) {
+    console.error('❌ context-menu要素が見つかりません');
+    return;
+  }
+
+  console.log('✅ context-menu要素発見:', contextMenu);
+
+  // 既存のメニューを非表示
+  hideContextMenu();
+
+  // 画面境界での調整
+  const menuWidth = 180;
+  const menuHeight = 160;
+  const adjustedX = Math.min(x, window.innerWidth - menuWidth - 10);
+  const adjustedY = Math.min(y, window.innerHeight - menuHeight - 10);
+
+  // メニュー位置とデータを設定
+  contextMenu.style.left = adjustedX + 'px';
+  contextMenu.style.top = adjustedY + 'px';
+  contextMenu.dataset.taskId = taskId;
+  contextMenu.style.display = 'block';
+
+  console.log('📍 メニュー位置設定:', { left: adjustedX, top: adjustedY, display: contextMenu.style.display });
+
+  // メニュー項目にイベントリスナーを設定
+  setupContextMenuActions(contextMenu, taskId);
+
+  // 外部クリックで閉じるイベント
+  setTimeout(() => {
+    document.addEventListener('click', hideContextMenu);
+    document.addEventListener('keydown', handleContextMenuKeydown);
+  }, 0);
+}
+
+/**
+ * コンテキストメニューの非表示
+ */
+function hideContextMenu() {
+  const contextMenu = document.getElementById('context-menu');
+  if (contextMenu) {
+    contextMenu.style.display = 'none';
+    contextMenu.dataset.taskId = '';
+  }
+
+  // イベントリスナーを削除
+  document.removeEventListener('click', hideContextMenu);
+  document.removeEventListener('keydown', handleContextMenuKeydown);
+}
+
+/**
+ * コンテキストメニューのアクション設定
+ * @param {HTMLElement} menu - メニュー要素
+ * @param {string} taskId - タスクID
+ */
+function setupContextMenuActions(menu, taskId) {
+  const items = menu.querySelectorAll('.context-menu-item[data-action]');
+  console.log('🔧 メニューアクション設定:', items.length, 'アイテム見つかりました');
+  
+  // 既存のイベントリスナーを削除
+  const newClonedItems = [];
+  items.forEach(item => {
+    console.log('📝 アイテム:', item.dataset.action, item.textContent.trim());
+    const clonedItem = item.cloneNode(true);
+    item.parentNode.replaceChild(clonedItem, item);
+    newClonedItems.push(clonedItem);
+  });
+
+  // 新しいイベントリスナーを追加
+  newClonedItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = item.dataset.action;
+      console.log('🎯 メニューアクション実行:', action, taskId);
+      executeContextAction(action, taskId);
+      hideContextMenu();
+    });
+  });
+  
+  console.log('✅ メニューアクション設定完了:', newClonedItems.length, 'アイテム');
+}
+
+/**
+ * コンテキストメニューアクションの実行
+ * @param {string} action - アクション名
+ * @param {string} taskId - タスクID
+ */
+function executeContextAction(action, taskId) {
+  try {
+    console.log('⚡ アクション実行開始:', action, taskId);
+    
+    switch (action) {
+      case 'edit-title':
+        console.log('✏️ タイトル編集開始');
+        editTaskTitle(taskId);
+        break;
+      case 'edit-time':
+        console.log('🕒 時間編集開始');
+        editTaskTime(taskId);
+        break;
+      case 'duplicate':
+        console.log('📋 タスク複製開始');
+        duplicateTask(taskId);
+        break;
+      case 'delete':
+        console.log('🗑️ タスク削除開始');
+        deleteTaskWithConfirmation(taskId);
+        break;
+      default:
+        console.warn('❓ 未知のアクション:', action);
+    }
+    
+    console.log('✅ アクション実行完了:', action);
+  } catch (error) {
+    console.error('❌ コンテキストアクション実行エラー:', error);
+    showNotification('操作に失敗しました', 'error');
+  }
+}
+
+/**
+ * タスクの複製
+ * @param {string} taskId - 複製元のタスクID
+ */
+function duplicateTask(taskId) {
+  try {
+    const appState = window.AppState;
+    const originalTask = appState.tasks.find(t => t.id === taskId);
+    if (!originalTask) {return;}
+
+    // 新しいタスクを作成（時刻を少しずらす）
+    const startMinutes = timeStringToMinutes(originalTask.startTime) + 60; // 1時間後
+    const endMinutes = timeStringToMinutes(originalTask.endTime) + 60;
+    
+    const newStartTime = minutesToTimeString(Math.min(startMinutes, 1440 - 60));
+    const newEndTime = minutesToTimeString(Math.min(endMinutes, 1440));
+
+    const duplicatedTask = new Task(
+      null,
+      originalTask.title + ' (コピー)',
+      newStartTime,
+      newEndTime,
+      originalTask.priority,
+      originalTask.date
+    );
+
+    appState.tasks.push(duplicatedTask);
+    saveToStorage();
+    recalculateAllLanes();
+
+    // 該当日付パネルを再描画
+    const dayPanel = document.querySelector(`[data-date="${originalTask.date}"]`);
+    if (dayPanel) {
+      renderTasksToPanel(originalTask.date, dayPanel);
+    }
+
+    showNotification('タスクを複製しました', 'success');
+
+  } catch (error) {
+    console.error('タスク複製エラー:', error);
+    showNotification('タスクの複製に失敗しました', 'error');
+  }
+}
+
+/**
+ * 確認付きタスク削除
+ * @param {string} taskId - 削除するタスクID
+ */
+function deleteTaskWithConfirmation(taskId) {
+  try {
+    const appState = window.AppState;
+    const task = appState.tasks.find(t => t.id === taskId);
+    if (!task) {return;}
+
+    const confirmed = confirm(`「${task.title}」を削除しますか？\n\nこの操作は元に戻せません。`);
+    if (!confirmed) {return;}
+
+    // タスクを削除
+    const taskIndex = appState.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      appState.tasks.splice(taskIndex, 1);
+      saveToStorage();
+      recalculateAllLanes();
+
+      // DOMからカードを削除
+      const card = document.querySelector(`[data-task-id="${taskId}"]`);
+      if (card) {
+        card.remove();
+      }
+
+      showNotification('タスクを削除しました', 'success');
+    }
+
+  } catch (error) {
+    console.error('タスク削除エラー:', error);
+    showNotification('タスクの削除に失敗しました', 'error');
+  }
+}
+
+/**
+ * コンテキストメニューのキーボード操作
+ * @param {KeyboardEvent} e - キーボードイベント
+ */
+function handleContextMenuKeydown(e) {
+  if (e.key === 'Escape') {
+    hideContextMenu();
+  }
+}
+
+/**
+ * インライン入力モーダルの表示
+ * @param {string} title - モーダルタイトル
+ * @param {string} placeholder - 入力フィールドのプレースホルダー
+ * @param {string} defaultValue - デフォルト値
+ * @param {Function} onConfirm - 確定時のコールバック
+ */
+function showInlineInput(title, placeholder, defaultValue = '', onConfirm) {
+  const overlay = document.getElementById('inline-input-overlay');
+  const titleElement = document.getElementById('inline-input-title');
+  const inputField = document.getElementById('inline-input-field');
+
+  if (!overlay || !titleElement || !inputField) {return;}
+
+  titleElement.textContent = title;
+  inputField.placeholder = placeholder;
+  inputField.value = defaultValue;
+  overlay.style.display = 'flex';
+
+  // フォーカスを設定
+  setTimeout(() => {
+    inputField.focus();
+    inputField.select();
+  }, 100);
+
+  // コールバック関数を保存
+  window._inlineInputCallback = onConfirm;
+
+  // Enterキーで確定
+  inputField.addEventListener('keydown', handleInlineInputKeydown);
+}
+
+/**
+ * インライン入力の非表示
+ */
+function hideInlineInput() {
+  const overlay = document.getElementById('inline-input-overlay');
+  const inputField = document.getElementById('inline-input-field');
+
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+
+  if (inputField) {
+    inputField.removeEventListener('keydown', handleInlineInputKeydown);
+  }
+
+  window._inlineInputCallback = null;
+}
+
+/**
+ * インライン入力の確定
+ */
+function confirmInlineInput() {
+  const inputField = document.getElementById('inline-input-field');
+  if (inputField && window._inlineInputCallback) {
+    const value = inputField.value.trim();
+    if (value) {
+      window._inlineInputCallback(value);
+    }
+  }
+  hideInlineInput();
+}
+
+/**
+ * インライン入力のキーボード操作
+ * @param {KeyboardEvent} e - キーボードイベント
+ */
+function handleInlineInputKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmInlineInput();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    hideInlineInput();
+  }
+}
+
+// グローバル関数として公開
+window.hideInlineInput = hideInlineInput;
+window.confirmInlineInput = confirmInlineInput;
+window.showInlineInput = showInlineInput;
+window.showNotification = showNotification;
 
 /**
  * Testing Trophy対応：タスクカードテストユーティリティ

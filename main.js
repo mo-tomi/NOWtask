@@ -259,6 +259,51 @@ function exposeGlobalFunctions() {
   window.editTaskTitle = editTaskTitle;
   window.editTaskTime = editTaskTime;
   window.jumpToDate = jumpToDate;
+  window.jumpToToday = function() {
+    try {
+      const today = getCurrentDateString();
+      const success = jumpToDate(today);
+      
+      if (success) {
+        console.log('📅 今日の日付にジャンプ:', today);
+        
+        // 成功フィードバック表示
+        const feedback = document.createElement('div');
+        feedback.textContent = `📅 今日（${today}）に移動しました`;
+        feedback.style.cssText = `
+          position: fixed;
+          top: 80px;
+          right: 20px;
+          background: var(--primary);
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          z-index: 1000;
+          animation: slideInFade 0.3s ease-out;
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        // 2秒後に自動削除
+        setTimeout(() => {
+          feedback.style.animation = 'slideOutFade 0.3s ease-in';
+          setTimeout(() => {
+            if (feedback.parentNode) {
+              feedback.parentNode.removeChild(feedback);
+            }
+          }, 300);
+        }, 2000);
+      } else {
+        console.warn('今日の日付へのジャンプに失敗');
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('jumpToToday エラー:', error);
+      return false;
+    }
+  };
 
   // タスク作成・削除・完了切り替え
   window.createNewTask = function(date = getCurrentDateString()) {
@@ -373,11 +418,22 @@ function exposeGlobalFunctions() {
       const title = input.value.trim();
       const currentDate = window.AppState.currentDate;
       
-      // 現在時刻から1時間後のタスクを作成
+      // 現在時刻から1時間後のタスクを作成（15分単位でスナップ）
       const now = new Date();
-      const startHour = now.getHours();
-      const startTime = `${startHour.toString().padStart(2, '0')}:00`;
-      const endTime = `${(startHour + 1).toString().padStart(2, '0')}:00`;
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      
+      // 15分単位にスナップして次の15分区切りから開始
+      const snappedMinutes = Math.ceil(currentMinutes / 15) * 15;
+      const startHour = Math.floor(snappedMinutes / 60) % 24;
+      const startMinute = snappedMinutes % 60;
+      
+      // 1時間後を終了時刻とする（15分単位）
+      const endMinutes = snappedMinutes + 60;
+      const endHour = Math.floor(endMinutes / 60) % 24;
+      const endMinute = endMinutes % 60;
+      
+      const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 
       const newTask = new Task(
         null,
@@ -448,11 +504,15 @@ function exposeGlobalFunctions() {
     try {
       const currentDate = window.AppState.currentDate;
       
-      // 23:00開始で指定時間の睡眠タスクを作成
+      // 23:00開始で指定時間の睡眠タスクを作成（15分単位）
       const startHour = 23;
-      const endHour = (startHour + hours) % 24;
-      const startTime = `${startHour.toString().padStart(2, '0')}:00`;
-      const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+      const startMinute = 0;
+      const endTotalMinutes = (startHour * 60 + startMinute + hours * 60) % (24 * 60);
+      const endHour = Math.floor(endTotalMinutes / 60);
+      const endMinute = endTotalMinutes % 60;
+      
+      const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 
       const newTask = new Task(
         null,
@@ -481,6 +541,91 @@ function exposeGlobalFunctions() {
       return null;
     }
   };
+
+  // 日常テンプレート追加
+  window.addDailyTemplate = function(title, durationMinutes) {
+    try {
+      const currentDate = window.AppState.currentDate;
+      
+      // 現在時刻から開始時刻を計算（15分単位でスナップ）
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      
+      // 15分単位にスナップして次の15分区切りから開始
+      const snappedMinutes = Math.ceil(currentMinutes / 15) * 15;
+      const startHour = Math.floor(snappedMinutes / 60) % 24;
+      const startMinute = snappedMinutes % 60;
+      
+      // 指定分数後を終了時刻とする（15分単位でスナップ）
+      const endTotalMinutes = snappedMinutes + durationMinutes;
+      const endHour = Math.floor(endTotalMinutes / 60) % 24;
+      const endMinute = endTotalMinutes % 60;
+      
+      const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+      const newTask = new Task(
+        null,
+        title,
+        startTime,
+        endTime,
+        'normal',
+        currentDate
+      );
+      
+      window.AppState.tasks.push(newTask);
+      saveToStorage();
+      recalculateAllLanes();
+
+      // 該当日付パネルを再描画
+      const dayPanel = document.querySelector(`[data-date="${currentDate}"]`);
+      if (dayPanel) {
+        renderTasksToPanel(currentDate, dayPanel);
+      }
+
+      // 成功フィードバックを表示
+      showDailyTemplateSuccess(title, startTime, durationMinutes);
+      
+      console.log(`✅ 日常テンプレート追加 (${title} ${durationMinutes}分):`, newTask.id);
+      return newTask.id;
+
+    } catch (error) {
+      console.error('日常テンプレート追加エラー:', error);
+      alert(`${title}テンプレートの追加に失敗しました。`);
+      return null;
+    }
+  };
+
+  // 日常テンプレート成功フィードバック
+  function showDailyTemplateSuccess(title, startTime, duration) {
+    const feedback = document.createElement('div');
+    feedback.textContent = `✅ ${title}を${startTime}から${duration}分で追加しました`;
+    feedback.style.cssText = `
+      position: fixed;
+      top: 120px;
+      right: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, #1E40AF 100%);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 1000;
+      animation: slideInFade 0.3s ease-out;
+      box-shadow: 0 4px 12px rgba(46, 139, 255, 0.3);
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    // 3秒後に自動削除
+    setTimeout(() => {
+      feedback.style.animation = 'slideOutFade 0.3s ease-in';
+      setTimeout(() => {
+        if (feedback.parentNode) {
+          feedback.parentNode.removeChild(feedback);
+        }
+      }, 300);
+    }, 3000);
+  }
 
   // カスタムタスクフォーム切り替え
   window.toggleCustomTaskForm = function() {
@@ -550,12 +695,35 @@ function exposeGlobalFunctions() {
   window.showDatePicker = function() {
     try {
       const currentDate = window.AppState.currentDate;
-      const newDate = prompt('日付を入力してください (YYYY-MM-DD):', currentDate);
       
-      if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-        window.jumpToDate(newDate);
-      } else if (newDate) {
-        alert('正しい形式で入力してください (YYYY-MM-DD)');
+      // インライン入力モーダルで日付を取得
+      if (typeof window.showInlineInput === 'function') {
+        window.showInlineInput(
+          '日付を変更',
+          'YYYY-MM-DD 形式で入力',
+          currentDate,
+          (inputDate) => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(inputDate)) {
+              window.jumpToDate(inputDate);
+            } else {
+              // 通知機能を使ってエラー表示
+              if (typeof window.showNotification === 'function') {
+                window.showNotification('正しい形式で入力してください (YYYY-MM-DD)', 'error');
+              } else {
+                alert('正しい形式で入力してください (YYYY-MM-DD)');
+              }
+            }
+          }
+        );
+      } else {
+        // フォールバック：従来のprompt
+        const newDate = prompt('日付を入力してください (YYYY-MM-DD):', currentDate);
+        
+        if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+          window.jumpToDate(newDate);
+        } else if (newDate) {
+          alert('正しい形式で入力してください (YYYY-MM-DD)');
+        }
       }
     } catch (error) {
       console.error('日付ピッカーエラー:', error);

@@ -24,6 +24,7 @@
         <button class="date-nav-btn" onclick="navigateDate(-1)" aria-label="前日">‹</button>
         <div id="main-clock" class="main-clock" onclick="showDatePicker()" title="クリックして日付を変更">2025-01-01 00:00</div>
         <button class="date-nav-btn" onclick="navigateDate(1)" aria-label="翌日">›</button>
+        <button class="today-btn" onclick="jumpToToday()" aria-label="今日に移動" title="今日の日付に戻る">今日</button>
       </div>
     </div>
     <div class="header-right">
@@ -121,6 +122,27 @@
                 </button>
               </div>
             </div>
+            
+            <div class="daily-template-group">
+              <div class="template-label">日常</div>
+              <div class="daily-options">
+                <button class="template-btn daily" onclick="addDailyTemplate('歯磨き', 5)">
+                  <span class="template-icon">🦷</span>
+                  <span class="template-text">歯磨き</span>
+                  <span class="template-time">5分</span>
+                </button>
+                <button class="template-btn daily" onclick="addDailyTemplate('料理', 30)">
+                  <span class="template-icon">🍳</span>
+                  <span class="template-text">料理</span>
+                  <span class="template-time">30分</span>
+                </button>
+                <button class="template-btn daily" onclick="addDailyTemplate('食事', 30)">
+                  <span class="template-icon">🍽️</span>
+                  <span class="template-text">食事</span>
+                  <span class="template-time">30分</span>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -160,19 +182,205 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="task-start-time" class="form-label">開始時刻</label>
-                  <input 
-                    type="time" 
-                    id="task-start-time" 
-                    class="form-input form-input-time"
-                  >
+                  <select id="task-start-time" class="form-input form-input-time">
+                    <option value="00:00">0:00</option>
+                    <option value="00:15">0:15</option>
+                    <option value="00:30">0:30</option>
+                    <option value="00:45">0:45</option>
+                    <option value="01:00">1:00</option>
+                    <option value="01:15">1:15</option>
+                    <option value="01:30">1:30</option>
+                    <option value="01:45">1:45</option>
+                    <option value="02:00">2:00</option>
+                    <option value="02:15">2:15</option>
+                    <option value="02:30">2:30</option>
+                    <option value="02:45">2:45</option>
+                    <option value="03:00">3:00</option>
+                    <option value="03:15">3:15</option>
+                    <option value="03:30">3:30</option>
+                    <option value="03:45">3:45</option>
+                    <option value="04:00">4:00</option>
+                    <option value="04:15">4:15</option>
+                    <option value="04:30">4:30</option>
+                    <option value="04:45">4:45</option>
+                    <option value="05:00">5:00</option>
+                    <option value="05:15">5:15</option>
+                    <option value="05:30">5:30</option>
+                    <option value="05:45">5:45</option>
+                    <option value="06:00">6:00</option>
+                    <option value="06:15">6:15</option>
+                    <option value="06:30">6:30</option>
+                    <option value="06:45">6:45</option>
+                    <option value="07:00">7:00</option>
+                    <option value="07:15">7:15</option>
+                    <option value="07:30">7:30</option>
+                    <option value="07:45">7:45</option>
+                    <option value="08:00">8:00</option>
+                    <option value="08:15">8:15</option>
+                    <option value="08:30">8:30</option>
+                    <option value="08:45">8:45</option>
+                    <option value="09:00" selected>9:00</option>
+                    <option value="09:15">9:15</option>
+                    <option value="09:30">9:30</option>
+                    <option value="09:45">9:45</option>
+                    <option value="10:00">10:00</option>
+                    <option value="10:15">10:15</option>
+                    <option value="10:30">10:30</option>
+                    <option value="10:45">10:45</option>
+                    <option value="11:00">11:00</option>
+                    <option value="11:15">11:15</option>
+                    <option value="11:30">11:30</option>
+                    <option value="11:45">11:45</option>
+                    <option value="12:00">12:00</option>
+                    <option value="12:15">12:15</option>
+                    <option value="12:30">12:30</option>
+                    <option value="12:45">12:45</option>
+                    <option value="13:00">13:00</option>
+                    <option value="13:15">13:15</option>
+                    <option value="13:30">13:30</option>
+                    <option value="13:45">13:45</option>
+                    <option value="14:00">14:00</option>
+                    <option value="14:15">14:15</option>
+                    <option value="14:30">14:30</option>
+                    <option value="14:45">14:45</option>
+                    <option value="15:00">15:00</option>
+                    <option value="15:15">15:15</option>
+                    <option value="15:30">15:30</option>
+                    <option value="15:45">15:45</option>
+                    <option value="16:00">16:00</option>
+                    <option value="16:15">16:15</option>
+                    <option value="16:30">16:30</option>
+                    <option value="16:45">16:45</option>
+                    <option value="17:00">17:00</option>
+                    <option value="17:15">17:15</option>
+                    <option value="17:30">17:30</option>
+                    <option value="17:45">17:45</option>
+                    <option value="18:00">18:00</option>
+                    <option value="18:15">18:15</option>
+                    <option value="18:30">18:30</option>
+                    <option value="18:45">18:45</option>
+                    <option value="19:00">19:00</option>
+                    <option value="19:15">19:15</option>
+                    <option value="19:30">19:30</option>
+                    <option value="19:45">19:45</option>
+                    <option value="20:00">20:00</option>
+                    <option value="20:15">20:15</option>
+                    <option value="20:30">20:30</option>
+                    <option value="20:45">20:45</option>
+                    <option value="21:00">21:00</option>
+                    <option value="21:15">21:15</option>
+                    <option value="21:30">21:30</option>
+                    <option value="21:45">21:45</option>
+                    <option value="22:00">22:00</option>
+                    <option value="22:15">22:15</option>
+                    <option value="22:30">22:30</option>
+                    <option value="22:45">22:45</option>
+                    <option value="23:00">23:00</option>
+                    <option value="23:15">23:15</option>
+                    <option value="23:30">23:30</option>
+                    <option value="23:45">23:45</option>
+                  </select>
                 </div>
                 <div class="form-group">
                   <label for="task-end-time" class="form-label">終了時刻</label>
-                  <input 
-                    type="time" 
-                    id="task-end-time" 
-                    class="form-input form-input-time"
-                  >
+                  <select id="task-end-time" class="form-input form-input-time">
+                    <option value="00:00">0:00</option>
+                    <option value="00:15">0:15</option>
+                    <option value="00:30">0:30</option>
+                    <option value="00:45">0:45</option>
+                    <option value="01:00">1:00</option>
+                    <option value="01:15">1:15</option>
+                    <option value="01:30">1:30</option>
+                    <option value="01:45">1:45</option>
+                    <option value="02:00">2:00</option>
+                    <option value="02:15">2:15</option>
+                    <option value="02:30">2:30</option>
+                    <option value="02:45">2:45</option>
+                    <option value="03:00">3:00</option>
+                    <option value="03:15">3:15</option>
+                    <option value="03:30">3:30</option>
+                    <option value="03:45">3:45</option>
+                    <option value="04:00">4:00</option>
+                    <option value="04:15">4:15</option>
+                    <option value="04:30">4:30</option>
+                    <option value="04:45">4:45</option>
+                    <option value="05:00">5:00</option>
+                    <option value="05:15">5:15</option>
+                    <option value="05:30">5:30</option>
+                    <option value="05:45">5:45</option>
+                    <option value="06:00">6:00</option>
+                    <option value="06:15">6:15</option>
+                    <option value="06:30">6:30</option>
+                    <option value="06:45">6:45</option>
+                    <option value="07:00">7:00</option>
+                    <option value="07:15">7:15</option>
+                    <option value="07:30">7:30</option>
+                    <option value="07:45">7:45</option>
+                    <option value="08:00">8:00</option>
+                    <option value="08:15">8:15</option>
+                    <option value="08:30">8:30</option>
+                    <option value="08:45">8:45</option>
+                    <option value="09:00">9:00</option>
+                    <option value="09:15">9:15</option>
+                    <option value="09:30">9:30</option>
+                    <option value="09:45">9:45</option>
+                    <option value="10:00" selected>10:00</option>
+                    <option value="10:15">10:15</option>
+                    <option value="10:30">10:30</option>
+                    <option value="10:45">10:45</option>
+                    <option value="11:00">11:00</option>
+                    <option value="11:15">11:15</option>
+                    <option value="11:30">11:30</option>
+                    <option value="11:45">11:45</option>
+                    <option value="12:00">12:00</option>
+                    <option value="12:15">12:15</option>
+                    <option value="12:30">12:30</option>
+                    <option value="12:45">12:45</option>
+                    <option value="13:00">13:00</option>
+                    <option value="13:15">13:15</option>
+                    <option value="13:30">13:30</option>
+                    <option value="13:45">13:45</option>
+                    <option value="14:00">14:00</option>
+                    <option value="14:15">14:15</option>
+                    <option value="14:30">14:30</option>
+                    <option value="14:45">14:45</option>
+                    <option value="15:00">15:00</option>
+                    <option value="15:15">15:15</option>
+                    <option value="15:30">15:30</option>
+                    <option value="15:45">15:45</option>
+                    <option value="16:00">16:00</option>
+                    <option value="16:15">16:15</option>
+                    <option value="16:30">16:30</option>
+                    <option value="16:45">16:45</option>
+                    <option value="17:00">17:00</option>
+                    <option value="17:15">17:15</option>
+                    <option value="17:30">17:30</option>
+                    <option value="17:45">17:45</option>
+                    <option value="18:00">18:00</option>
+                    <option value="18:15">18:15</option>
+                    <option value="18:30">18:30</option>
+                    <option value="18:45">18:45</option>
+                    <option value="19:00">19:00</option>
+                    <option value="19:15">19:15</option>
+                    <option value="19:30">19:30</option>
+                    <option value="19:45">19:45</option>
+                    <option value="20:00">20:00</option>
+                    <option value="20:15">20:15</option>
+                    <option value="20:30">20:30</option>
+                    <option value="20:45">20:45</option>
+                    <option value="21:00">21:00</option>
+                    <option value="21:15">21:15</option>
+                    <option value="21:30">21:30</option>
+                    <option value="21:45">21:45</option>
+                    <option value="22:00">22:00</option>
+                    <option value="22:15">22:15</option>
+                    <option value="22:30">22:30</option>
+                    <option value="22:45">22:45</option>
+                    <option value="23:00">23:00</option>
+                    <option value="23:15">23:15</option>
+                    <option value="23:30">23:30</option>
+                    <option value="23:45">23:45</option>
+                  </select>
                 </div>
               </div>
               
@@ -233,6 +441,45 @@
       </div>
     </aside>
   </main>
+
+  <!-- 右クリックコンテキストメニュー -->
+  <div id="context-menu" class="context-menu" style="display: none;">
+    <div class="context-menu-item" data-action="edit-title">
+      <span class="context-icon">✏️</span>
+      <span class="context-text">名前を変更</span>
+    </div>
+    <div class="context-menu-item" data-action="edit-time">
+      <span class="context-icon">🕒</span>
+      <span class="context-text">時間を変更</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="duplicate">
+      <span class="context-icon">📋</span>
+      <span class="context-text">複製</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item danger" data-action="delete">
+      <span class="context-icon">🗑️</span>
+      <span class="context-text">削除</span>
+    </div>
+  </div>
+
+  <!-- インライン入力オーバーレイ -->
+  <div id="inline-input-overlay" class="inline-input-overlay" style="display: none;">
+    <div class="inline-input-modal">
+      <div class="inline-input-header">
+        <h3 id="inline-input-title">タスク名を入力</h3>
+        <button class="inline-input-close" onclick="hideInlineInput()">✕</button>
+      </div>
+      <div class="inline-input-content">
+        <input type="text" id="inline-input-field" class="inline-input-field" placeholder="タスク名を入力してください">
+        <div class="inline-input-actions">
+          <button class="inline-input-btn cancel" onclick="hideInlineInput()">キャンセル</button>
+          <button class="inline-input-btn confirm" onclick="confirmInlineInput()">確定</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ARIA Live Region for Screen Reader Announcements -->
   <div 

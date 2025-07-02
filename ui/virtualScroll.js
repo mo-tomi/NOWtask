@@ -14,6 +14,8 @@ import {
 } from '../core/timeUtils.js';
 import { assignLanes, updateGridLayout } from '../core/laneEngine.js';
 import { createTaskCard } from './taskCard.js';
+import { Task, saveToStorage } from '../services/storage.js';
+import { recalculateAllLanes } from '../core/laneEngine.js';
 
 /**
  * 仮想スクロール用グローバル状態
@@ -103,25 +105,120 @@ export function createDayPanel(dateString) {
       background-size: 100% 60px;
     `;
 
-    // 時刻ラベル作成（0:00 - 23:00）
+    // 時刻ラベル作成（30分単位表示、15分刻みクリック対応）
     for (let hour = 0; hour < 24; hour++) {
-      const timeLabel = document.createElement('div');
-      timeLabel.className = 'time-label';
-      timeLabel.dataset.hour = hour;
-      timeLabel.textContent = `${hour}:00`;
-      timeLabel.style.cssText = `
-        position: absolute;
-        left: 8px;
-        top: ${hour * 60 - 8}px;
-        font-size: 12px;
-        color: var(--gray-600);
-        font-weight: 500;
-        background: var(--background);
-        padding: 2px 4px;
-        border-radius: 2px;
-        z-index: 120;
-      `;
-      timeline.appendChild(timeLabel);
+      for (let minute = 0; minute < 60; minute += 30) {
+        const totalMinutes = hour * 60 + minute;
+        const timeLabel = document.createElement('div');
+        
+        // 30分間隔なので全てメジャー時刻扱い
+        timeLabel.className = 'time-label major';
+        timeLabel.dataset.hour = hour;
+        timeLabel.dataset.minute = minute;
+        timeLabel.dataset.totalMinutes = totalMinutes;
+        
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        timeLabel.textContent = timeString;
+        
+        timeLabel.style.cssText = `
+          position: absolute;
+          left: 8px;
+          top: ${totalMinutes - 8}px;
+          font-size: 12px;
+          color: var(--gray-600);
+          font-weight: 500;
+          background: var(--background);
+          padding: 2px 4px;
+          border-radius: 2px;
+          z-index: 120;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        `;
+        
+        // ホバー効果
+        timeLabel.addEventListener('mouseenter', () => {
+          timeLabel.style.background = 'var(--primary)';
+          timeLabel.style.color = 'white';
+          timeLabel.style.fontWeight = '600';
+        });
+        
+        timeLabel.addEventListener('mouseleave', () => {
+          timeLabel.style.background = 'var(--background)';
+          timeLabel.style.color = 'var(--gray-600)';
+          timeLabel.style.fontWeight = '500';
+        });
+        
+        // クリックイベント：その時間にタスクを追加（15分刻み対応）
+        timeLabel.addEventListener('click', (e) => {
+          e.stopPropagation();
+          createTaskAtTime(dateString, hour, minute);
+        });
+        
+        timeline.appendChild(timeLabel);
+      }
+    }
+
+    // 15分刻みの非表示クリック領域を追加（UX向上）
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 15; minute < 60; minute += 30) { // 15分と45分のみ
+        const totalMinutes = hour * 60 + minute;
+        const clickArea = document.createElement('div');
+        
+        clickArea.className = 'time-click-area';
+        clickArea.dataset.hour = hour;
+        clickArea.dataset.minute = minute;
+        clickArea.dataset.totalMinutes = totalMinutes;
+        
+        clickArea.style.cssText = `
+          position: absolute;
+          left: 0;
+          top: ${totalMinutes - 15}px;
+          right: 0;
+          height: 30px;
+          z-index: 115;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        `;
+        
+        // ホバー時に15分刻み時刻を表示
+        clickArea.addEventListener('mouseenter', () => {
+          const tooltip = document.createElement('div');
+          const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+          tooltip.textContent = timeString;
+          tooltip.className = 'time-tooltip';
+          tooltip.style.cssText = `
+            position: absolute;
+            left: 8px;
+            top: ${totalMinutes - 8}px;
+            font-size: 10px;
+            color: var(--primary);
+            font-weight: 600;
+            background: rgba(46, 139, 255, 0.1);
+            padding: 2px 4px;
+            border-radius: 2px;
+            z-index: 125;
+            pointer-events: none;
+          `;
+          timeline.appendChild(tooltip);
+          clickArea._tooltip = tooltip;
+        });
+        
+        clickArea.addEventListener('mouseleave', () => {
+          if (clickArea._tooltip && clickArea._tooltip.parentNode) {
+            clickArea._tooltip.parentNode.removeChild(clickArea._tooltip);
+            clickArea._tooltip = null;
+          }
+        });
+        
+        // 15分刻みでのタスク作成
+        clickArea.addEventListener('click', (e) => {
+          e.stopPropagation();
+          createTaskAtTime(dateString, hour, minute);
+        });
+        
+        timeline.appendChild(clickArea);
+      }
     }
 
     // 現在時刻ライン（今日のみ）
@@ -185,6 +282,116 @@ export function createDayPanel(dateString) {
     console.error('日付パネル作成エラー:', error);
     return createErrorPanel(dateString, error.message);
   }
+}
+
+/**
+ * タイムラインクリック時にタスクを作成
+ * @param {string} dateString - 対象日付
+ * @param {number} hour - 時間（0-23）
+ * @param {number} minute - 分（0,15,30,45）
+ */
+function createTaskAtTime(dateString, hour, minute) {
+  try {
+    const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    
+    // 1時間後の終了時刻を計算（15分単位でスナップ）
+    let endHour = hour;
+    let endMinute = minute + 60;
+    
+    if (endMinute >= 60) {
+      endHour = (endHour + 1) % 24;
+      endMinute = endMinute % 60;
+    }
+    
+    // 15分単位にスナップ
+    endMinute = Math.round(endMinute / 15) * 15;
+    if (endMinute >= 60) {
+      endHour = (endHour + 1) % 24;
+      endMinute = 0;
+    }
+    
+    const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+    
+    // インライン入力でタスク名を取得
+    showInlineInput(
+      `${startTime}のタスクを追加`,
+      'タスク名を入力してください',
+      '新しいタスク',
+      (title) => {
+        // タスク作成処理
+        const newTask = new Task(
+          null, // ID自動生成
+          title.trim(),
+          startTime,
+          endTime,
+          'normal',
+          dateString
+        );
+        
+        // AppStateに追加
+        if (window.AppState) {
+          window.AppState.tasks.push(newTask);
+          saveToStorage();
+          recalculateAllLanes();
+          
+          // 該当日付パネルを再描画
+          const panel = document.querySelector(`[data-date="${dateString}"]`);
+          if (panel) {
+            renderTasksToPanel(dateString, panel);
+          }
+          
+          console.log('✅ タイムラインクリックでタスク作成:', {
+            title: newTask.title,
+            time: `${startTime}-${endTime}`,
+            date: dateString,
+            id: newTask.id
+          });
+          
+          // 作成成功のフィードバック（短時間だけ表示）
+          showTaskCreatedFeedback(startTime);
+        }
+      }
+    );
+    
+    return; // 関数を抜ける（非同期処理のため）
+    
+  } catch (error) {
+    console.error('タイムラインタスク作成エラー:', error);
+    alert('タスクの作成に失敗しました。もう一度お試しください。');
+  }
+}
+
+/**
+ * タスク作成成功のフィードバック表示
+ * @param {string} time - 作成した時刻
+ */
+function showTaskCreatedFeedback(time) {
+  const feedback = document.createElement('div');
+  feedback.textContent = `✅ ${time}にタスクを追加しました`;
+  feedback.style.cssText = `
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: var(--primary);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 1000;
+    animation: slideInFade 0.3s ease-out;
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  // 2秒後に自動削除
+  setTimeout(() => {
+    feedback.style.animation = 'slideOutFade 0.3s ease-in';
+    setTimeout(() => {
+      if (feedback.parentNode) {
+        feedback.parentNode.removeChild(feedback);
+      }
+    }, 300);
+  }, 2000);
 }
 
 /**
@@ -468,6 +675,14 @@ function handleArrowNavigation(e) {
   } else if (e.key === 'ArrowRight') {
     e.preventDefault();
     navigateDate(1);
+  } else if (e.key === 't' || e.key === 'T') {
+    e.preventDefault();
+    // jumpToTodayがグローバル関数として定義されているかチェック
+    if (typeof window.jumpToToday === 'function') {
+      window.jumpToToday();
+    } else {
+      console.warn('jumpToToday関数が見つかりません');
+    }
   }
 }
 
